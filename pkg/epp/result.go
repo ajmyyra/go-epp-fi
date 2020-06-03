@@ -20,11 +20,3 @@ type Transaction struct {
 	ClTRID string `xml:"clTRID"`
 	SvTRID string `xml:"svTRID"`
 }
-
-func (s *Result) IsError() bool {
-	return s.Code >= 2000
-}
-
-func (s *Result) IsFatal() bool {
-	return s.Code >= 2500
-}

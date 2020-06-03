@@ -15,42 +15,46 @@ Currently only connectivity is available. I'm planning to proceed in the followi
 ## Raw example usage without any features
 
 ```
-clientKey, err := ioutil.ReadFile("/path/to/your/privkey.pem")
-if err != nil {
-	panic(err)
-}
-clientCert, err := ioutil.ReadFile("/path/to/your/cert.pem")
+import (
+	"fmt"
+	"github.com/ajmyyra/go-epp-fi/pkg/registry"
+	"io/ioutil"
+)
 
-client, err := registry.NewRegistryClient("username","passwd","epptest.ficora.fi", 700, clientKey, clientCert)
-if err != nil {
-	panic(err)
-}
+func main() {
+	clientKey, err := ioutil.ReadFile("/path/to/your/certs/privkey.pem")
+	if err != nil {
+		panic(err)
+	}
+	clientCert, err := ioutil.ReadFile("/path/to/your/certs/cert.pem")
+    if err != nil {
+		panic(err)
+	}
 
-if err = client.Connect(); err != nil {
-	panic(err)
-}
+	client, err := registry.NewRegistryClient("foo","bar","epptest.ficora.fi", 700, clientKey, clientCert)
+	if err != nil {
+		panic(err)
+	}
 
-hello := epp.APIHello{
-	XMLName: xml.Name{},
-	Xmlns:   "urn:ietf:params:xml:ns:epp-1.0",
-}
+	if err = client.Connect(); err != nil {
+		panic(err)
+	}
+	fmt.Printf("Connected successfully, server time is now %s\n\n", client.Greeting.SvDate)
 
-helloxml, err := xml.Marshal(hello)
-if err != nil {
-	panic(err)
-}
+	greeting, err := client.Hello()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%+v\n", greeting)
 
-fmt.Printf("Hello to send: %s\n", string(helloxml))
-err = client.Write(helloxml)
-if err != nil {
-	panic(err)
-}
+    if err = client.Login(); err != nil {
+        panic(err)
+    }
+    fmt.Println("Logged in successfully.")
 
-// To give API some time to process our request, not usually necessary.
-time.Sleep(1 * time.Second)
-
-reply, err := client.Read()
-if err != nil {
-	panic(err)
+    if err = client.Logout(); err != nil {
+        panic(err)
+    }
+    fmt.Println("Logged out successfully.")
 }
 ```

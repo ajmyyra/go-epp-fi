@@ -1,6 +1,9 @@
 package epp
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"time"
+)
 
 type APIGreeting struct {
 	XMLName  xml.Name `xml:"epp"`
@@ -14,7 +17,8 @@ type APIGreeting struct {
 
 type Greeting struct {
 	SvID    string `xml:"svID"`
-	SvDate  string `xml:"svDate"`
+	RawDate string `xml:"svDate"`
+	SvDate  time.Time
 	SvcMenu struct {
 		Version      string   `xml:"version"`
 		Lang         string   `xml:"lang"`

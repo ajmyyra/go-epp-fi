@@ -9,19 +9,33 @@ import (
 	"github.com/ajmyyra/go-epp-fi/pkg/epp"
 	"github.com/pkg/errors"
 	"io"
+	"math/rand"
 	"net"
 	"time"
 )
 
+const APIVersion = "1.0"
+const APILanguage = "en"
+
+const reqIDChars = "ABCDEFGHIJKLMNOPQRSTUVXYZW0123456789"
+const reqIDLength = 5
+
 type Client struct {
 	RegistryServer string
 	TLSConfig tls.Config
+	Credentials Credentials
+
 	ReadTimeout time.Duration
 	WriteTimeout time.Duration
 
 	Conn net.Conn
-	Greeting epp.Greeting
+	Greeting *epp.Greeting
 	LoggedIn bool
+}
+
+type Credentials struct {
+	Username string
+	Password string
 }
 
 func NewRegistryClient(username, password, serverHost string, serverPort int, clientKey, clientCert []byte) (*Client, error) {
@@ -34,12 +48,20 @@ func NewRegistryClient(username, password, serverHost string, serverPort int, cl
 
 	client := Client{
 		RegistryServer: registry,
-		ReadTimeout:    time.Duration(10) * time.Second,
-		WriteTimeout:   time.Duration(20) * time.Second,
+		ReadTimeout:    time.Duration(60) * time.Second,
+		WriteTimeout:   time.Duration(60) * time.Second,
+		Conn: nil,
+	}
+	client.Credentials = Credentials{
+		Username: username,
+		Password: password,
 	}
 	client.TLSConfig = tls.Config{
 		Certificates: []tls.Certificate{cert},
 	}
+
+	// For request ID generation
+	rand.Seed(time.Now().UnixNano())
 
 	return &client, nil
 }
@@ -56,18 +78,14 @@ func (s *Client) Connect() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Bytes: %s\n", string(greet)) // DEBUG, remove
 
-	var apigreeting epp.APIGreeting
-	if err = xml.Unmarshal(greet, &apigreeting); err != nil {
+	s.Greeting, err = unmarshalGreeting(greet)
+	if err != nil {
 		return err
 	}
 
-	s.Greeting = apigreeting.Greeting
-	fmt.Printf("%+v\n", s.Greeting) // TODO logger and to debug
-
-	if s.Greeting.SvcMenu.Version == "1" {
-		return errors.New("")
+	if s.Greeting.SvcMenu.Version != APIVersion {
+		return errors.New("Unexpected version: " + s.Greeting.SvcMenu.Version)
 	}
 
 	return nil
@@ -99,6 +117,8 @@ func (s *Client) Read() ([]byte, error) {
 }
 
 func (s *Client) Write(payload []byte) error {
+	payload = []byte(xml.Header + string(payload))
+
 	sendBytesLength := uint32(4 + len(payload))
 
 	if s.WriteTimeout > 0 {
@@ -117,12 +137,54 @@ func (s *Client) Write(payload []byte) error {
 	return nil
 }
 
+func (s *Client) Send(payload []byte) ([]byte, error) {
+	err := s.Write(payload)
+	if err != nil {
+		// TODO log error
+		return nil, err
+	}
+
+	time.Sleep(time.Duration(1) * time.Second)
+
+	apiResp, err := s.Read()
+	if err != nil {
+		// TODO log error
+		return nil, err
+	}
+
+	return apiResp, nil
+}
+
 func (s *Client) Close() error {
 	if err := s.Conn.Close(); err != nil {
 		return err
 	}
 
+	s.Conn = nil
 	return nil
+}
+
+func (s *Client) Hello() (*epp.Greeting, error) {
+	if s.Conn != nil {
+		hello := epp.APIHello{
+			XMLName: xml.Name{},
+			Xmlns:   epp.EPPNamespace,
+		}
+		helloMsg, _ := xml.MarshalIndent(hello, "", "  ")
+		apiResp, err := s.Send(helloMsg)
+		if err != nil {
+			return nil, err
+		}
+
+		greeting, err := unmarshalGreeting(apiResp)
+		if err != nil {
+			return nil, err
+		}
+
+		return greeting, nil
+	}
+
+	return nil, errors.New("Uninitialized connection, unable to connect to server.")
 }
 
 func readStreamToBytes(conn net.Conn, rawResponse int32) ([]byte, error) {
@@ -134,4 +196,27 @@ func readStreamToBytes(conn net.Conn, rawResponse int32) ([]byte, error) {
 		// TODO log first param (amount of bytes read) if error
 	}
 	return buf.Bytes(), nil
+}
+
+func unmarshalGreeting(rawGreeting []byte) (*epp.Greeting, error) {
+	var greeting epp.APIGreeting
+	if err := xml.Unmarshal(rawGreeting, &greeting); err != nil {
+		return nil, err
+	}
+
+	formattedDate, err := time.Parse(time.RFC3339Nano, greeting.Greeting.RawDate)
+	if err != nil {
+		return nil, errors.Wrap(err, "Invalid or non-existent date in greeting")
+	}
+
+	greeting.Greeting.SvDate = formattedDate
+	return &greeting.Greeting, nil
+}
+
+func createRequestID(length int) string {
+	reqID := make([]byte, length)
+	for i := range reqID {
+		reqID[i] = reqIDChars[rand.Intn(len(reqIDChars))]
+	}
+	return string(reqID)
 }
