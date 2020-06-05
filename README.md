@@ -5,8 +5,10 @@ Golang library and client for interacting with Finnish communication authority's
 
 This repository is a work in progress, with things expected to be changed, moved, added and removed before version 1.0 is released.
 
-Currently only connectivity is available. I'm planning to proceed in the following order:
+Currently done:
 - FI EPP extensions (login, logout, balance checking, polling & acking messages)
+
+I'm planning to proceed in the following order:
 - Contacts (create, read, update, delete)
 - Domains (create, read, update, delete, renew, transfer)
 - Host objects (create, read, update, delete)

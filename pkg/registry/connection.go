@@ -29,7 +29,7 @@ type Client struct {
 	WriteTimeout time.Duration
 
 	Conn net.Conn
-	Greeting *epp.Greeting
+	Greeting epp.Greeting
 	LoggedIn bool
 }
 
@@ -164,7 +164,7 @@ func (s *Client) Close() error {
 	return nil
 }
 
-func (s *Client) Hello() (*epp.Greeting, error) {
+func (s *Client) Hello() (epp.Greeting, error) {
 	if s.Conn != nil {
 		hello := epp.APIHello{
 			XMLName: xml.Name{},
@@ -173,18 +173,18 @@ func (s *Client) Hello() (*epp.Greeting, error) {
 		helloMsg, _ := xml.MarshalIndent(hello, "", "  ")
 		apiResp, err := s.Send(helloMsg)
 		if err != nil {
-			return nil, err
+			return epp.Greeting{}, err
 		}
 
 		greeting, err := unmarshalGreeting(apiResp)
 		if err != nil {
-			return nil, err
+			return epp.Greeting{}, err
 		}
 
 		return greeting, nil
 	}
 
-	return nil, errors.New("Uninitialized connection, unable to connect to server.")
+	return epp.Greeting{}, errors.New("Uninitialized connection, unable to connect to server.")
 }
 
 func readStreamToBytes(conn net.Conn, rawResponse int32) ([]byte, error) {
@@ -198,19 +198,19 @@ func readStreamToBytes(conn net.Conn, rawResponse int32) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func unmarshalGreeting(rawGreeting []byte) (*epp.Greeting, error) {
+func unmarshalGreeting(rawGreeting []byte) (epp.Greeting, error) {
 	var greeting epp.APIGreeting
 	if err := xml.Unmarshal(rawGreeting, &greeting); err != nil {
-		return nil, err
+		return epp.Greeting{}, err
 	}
 
-	formattedDate, err := time.Parse(time.RFC3339Nano, greeting.Greeting.RawDate)
+	formattedDate, err := parseDate(greeting.Greeting.RawDate, time.RFC3339Nano)
 	if err != nil {
-		return nil, errors.Wrap(err, "Invalid or non-existent date in greeting")
+		return epp.Greeting{}, errors.Wrap(err, "Invalid or non-existent date in greeting")
 	}
-
 	greeting.Greeting.SvDate = formattedDate
-	return &greeting.Greeting, nil
+
+	return greeting.Greeting, nil
 }
 
 func createRequestID(length int) string {
@@ -219,4 +219,13 @@ func createRequestID(length int) string {
 		reqID[i] = reqIDChars[rand.Intn(len(reqIDChars))]
 	}
 	return string(reqID)
+}
+
+func parseDate(rawDate string, timeFormat string) (time.Time, error) {
+	formattedDate, err := time.Parse(timeFormat, rawDate)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return formattedDate, nil
 }

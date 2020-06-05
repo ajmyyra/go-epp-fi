@@ -7,6 +7,7 @@ type APIResult struct {
 	Xmlns    string   `xml:"xmlns,attr"`
 	Response struct {
 		Result Result `xml:"result"`
+		ResData ResData `xml:"resData"`
 		TrID   Transaction `xml:"trID"`
 	} `xml:"response"`
 }
@@ -14,6 +15,11 @@ type APIResult struct {
 type Result struct {
 	Code int `xml:"code,attr"`
 	Msg  string `xml:"msg"`
+}
+
+type ResData struct {
+	BalanceAmount int    `xml:"balanceamount"`
+	Timestamp     string `xml:"timestamp"`
 }
 
 type Transaction struct {
