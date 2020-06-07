@@ -8,8 +8,8 @@ import (
 
 func (s *Client) Login() error {
 	loginDetails := epp.Login{}
-	loginDetails.ClID = s.Credentials.Username
-	loginDetails.Pw = s.Credentials.Password
+	loginDetails.ClID = s.credentials.username
+	loginDetails.Pw = s.credentials.password
 
 	loginDetails.Options.Version = APIVersion
 	loginDetails.Options.Lang = APILanguage

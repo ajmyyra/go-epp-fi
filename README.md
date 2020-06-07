@@ -7,9 +7,9 @@ This repository is a work in progress, with things expected to be changed, moved
 
 Currently done:
 - FI EPP extensions (login, logout, balance checking, polling & acking messages)
+- Contacts (create, read, update, delete)
 
 I'm planning to proceed in the following order:
-- Contacts (create, read, update, delete)
 - Domains (create, read, update, delete, renew, transfer)
 - Host objects (create, read, update, delete)
 - FI EPP specialities (transfer lock, DNSSec)

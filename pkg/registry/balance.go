@@ -7,9 +7,10 @@ import (
 )
 
 func (s *Client) Balance() (int, error) {
+	reqID := createRequestID(reqIDLength)
 	balanceReq := epp.APIBalance{}
 	balanceReq.Xmlns = epp.EPPNamespace
-	balanceReq.Command.ClTRID = createRequestID(reqIDLength)
+	balanceReq.Command.ClTRID = reqID
 
 	balanceData, err := xml.Marshal(balanceReq)
 	if err != nil {
@@ -18,6 +19,7 @@ func (s *Client) Balance() (int, error) {
 
 	balanceRawResp, err := s.Send(balanceData)
 	if err != nil {
+		s.logAPIConnectionError(err, "requestID", reqID)
 		return -1, err
 	}
 
@@ -27,7 +29,7 @@ func (s *Client) Balance() (int, error) {
 	}
 
 	if balanceResult.Response.Result.Code != 1000 {
-		return -1, errors.New("Wrong return status: " + balanceResult.Response.Result.Msg)
+		return -1, errors.New("Request failed: " + balanceResult.Response.Result.Msg)
 	}
 
 	return balanceResult.Response.ResData.BalanceAmount, nil

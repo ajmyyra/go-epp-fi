@@ -9,10 +9,12 @@ import (
 const pollDate = "2006-01-02T15:04:05"
 
 func (s *Client) Poll() (epp.PollMessage, error) {
+	reqID := createRequestID(reqIDLength)
+
 	pollReq := epp.APIPoll{}
 	pollReq.Xmlns = epp.EPPNamespace
 	pollReq.Command.Poll.Op = "req"
-	pollReq.Command.ClTRID = createRequestID(reqIDLength)
+	pollReq.Command.ClTRID = reqID
 
 	pollData, err := xml.MarshalIndent(pollReq, "", "  ")
 	if err != nil {
@@ -21,6 +23,7 @@ func (s *Client) Poll() (epp.PollMessage, error) {
 
 	pollRawResp, err := s.Send(pollData)
 	if err != nil {
+		s.logAPIConnectionError(err, "requestID", reqID)
 		return epp.PollMessage{}, err
 	}
 
@@ -33,7 +36,7 @@ func (s *Client) Poll() (epp.PollMessage, error) {
 		return epp.PollMessage{}, errors.New("No new messages available.")
 	}
 	if pollResp.Response.Result.Code != 1301 {
-		return epp.PollMessage{}, errors.New(pollResp.Response.Result.Msg)
+		return epp.PollMessage{}, errors.New("Request failed: " + pollResp.Response.Result.Msg)
 	}
 
 
@@ -48,39 +51,40 @@ func (s *Client) Poll() (epp.PollMessage, error) {
 	return pollResp.Response.MsgQ, nil
 }
 
-func (s *Client) PollAck(id string) error {
-	// TODO check id validity before polling
+func (s *Client) PollAck(id string) (int, error) {
+	reqID := createRequestID(reqIDLength)
 
 	ackReq := epp.APIPoll{}
 	ackReq.Xmlns = epp.EPPNamespace
 	ackReq.Command.Poll.Op = "ack"
 	ackReq.Command.Poll.MsgID = id
-	ackReq.Command.ClTRID = createRequestID(reqIDLength)
+	ackReq.Command.ClTRID = reqID
 
 	ackData, err := xml.Marshal(ackReq)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	ackRawResp, err := s.Send(ackData)
 	if err != nil {
-		return err
+		s.logAPIConnectionError(err, "requestID", reqID)
+		return -1, err
 	}
 
 	var ackResp epp.APIPollResponse
 	if err = xml.Unmarshal(ackRawResp, &ackResp); err != nil {
-		return err
+		return -1, err
 	}
 
 	if ackResp.Response.Result.Code != 1000 {
-		return errors.New("Error: " + ackResp.Response.Result.Msg)
+		return -1, errors.New("Request failed: " + ackResp.Response.Result.Msg)
 	}
 
 	if ackResp.Response.MsgQ.ID != id {
-		return errors.New("Wrong message id acked: " + ackResp.Response.MsgQ.ID)
+		return -1, errors.New("Wrong message id acked: " + ackResp.Response.MsgQ.ID)
 	}
 
-	// TODO ackResp.Response.MsgQ.Count has number of messages left in queue
-
-	return nil
+	messagesLeft := ackResp.Response.MsgQ.Count
+	s.log.Info("Message acked successfully.", "message", id, "messagesLeft", messagesLeft)
+	return messagesLeft, nil
 }

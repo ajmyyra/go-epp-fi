@@ -20,6 +20,22 @@ type Result struct {
 type ResData struct {
 	BalanceAmount int    `xml:"balanceamount"`
 	Timestamp     string `xml:"timestamp"`
+	ChkData       struct {
+		Cd        []ItemCheck `xml:"cd"`
+	} `xml:"chkData"`
+	Create struct {
+		ID         string `xml:"id"`
+		CreateDate string `cml:"crDate"`
+	} `xml:"creData"`
+}
+
+type ItemCheck struct {
+	Id struct {
+		Name  string `xml:",chardata"`
+		Avail int    `xml:"avail,attr"`
+	} `xml:"id"`
+	Reason      string `xml:"reason"`
+	IsAvailable bool
 }
 
 type Transaction struct {

@@ -5,8 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"encoding/xml"
-	"fmt"
-	"github.com/ajmyyra/go-epp-fi/pkg/epp"
 	"github.com/pkg/errors"
 	"io"
 	"math/rand"
@@ -20,59 +18,12 @@ const APILanguage = "en"
 const reqIDChars = "ABCDEFGHIJKLMNOPQRSTUVXYZW0123456789"
 const reqIDLength = 5
 
-type Client struct {
-	RegistryServer string
-	TLSConfig tls.Config
-	Credentials Credentials
-
-	ReadTimeout time.Duration
-	WriteTimeout time.Duration
-
-	Conn net.Conn
-	Greeting epp.Greeting
-	LoggedIn bool
-}
-
-type Credentials struct {
-	Username string
-	Password string
-}
-
-func NewRegistryClient(username, password, serverHost string, serverPort int, clientKey, clientCert []byte) (*Client, error) {
-	cert, err := tls.X509KeyPair(clientCert, clientKey)
-	if err != nil {
-		return nil, err
-	}
-
-	registry := fmt.Sprintf("%s:%d", serverHost, serverPort)
-
-	client := Client{
-		RegistryServer: registry,
-		ReadTimeout:    time.Duration(60) * time.Second,
-		WriteTimeout:   time.Duration(60) * time.Second,
-		Conn: nil,
-	}
-	client.Credentials = Credentials{
-		Username: username,
-		Password: password,
-	}
-	client.TLSConfig = tls.Config{
-		Certificates: []tls.Certificate{cert},
-	}
-
-	// For request ID generation
-	rand.Seed(time.Now().UnixNano())
-
-	return &client, nil
-}
-
-
 func (s *Client) Connect() error {
-	dialConn, err := tls.Dial("tcp", s.RegistryServer, &s.TLSConfig)
+	dialConn, err := tls.Dial("tcp", s.registryServer, &s.tlsConfig)
 	if err != nil {
 		return err
 	}
-	s.Conn = dialConn
+	s.conn = dialConn
 
 	greet, err := s.Read()
 	if err != nil {
@@ -94,11 +45,11 @@ func (s *Client) Connect() error {
 func (s *Client) Read() ([]byte, error) {
 	var rawResponse int32
 
-	if s.ReadTimeout > 0 {
-		s.Conn.SetReadDeadline(time.Now().Add(s.ReadTimeout))
+	if s.readTimeout > 0 {
+		s.conn.SetReadDeadline(time.Now().Add(s.readTimeout))
 	}
 
-	err := binary.Read(s.Conn, binary.BigEndian, &rawResponse)
+	err := binary.Read(s.conn, binary.BigEndian, &rawResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +59,7 @@ func (s *Client) Read() ([]byte, error) {
 		return nil, io.ErrUnexpectedEOF
 	}
 
-	bytesResponse, err := readStreamToBytes(s.Conn, rawResponse)
+	bytesResponse, err := readStreamToBytes(s.conn, rawResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -121,15 +72,15 @@ func (s *Client) Write(payload []byte) error {
 
 	sendBytesLength := uint32(4 + len(payload))
 
-	if s.WriteTimeout > 0 {
-		s.Conn.SetWriteDeadline(time.Now().Add(s.WriteTimeout))
+	if s.writeTimeout > 0 {
+		s.conn.SetWriteDeadline(time.Now().Add(s.writeTimeout))
 	}
 
-	err := binary.Write(s.Conn, binary.BigEndian, sendBytesLength)
+	err := binary.Write(s.conn, binary.BigEndian, sendBytesLength)
 	if err != nil {
 		return err
 	}
-	if _, err = s.Conn.Write(payload); err != nil {
+	if _, err = s.conn.Write(payload); err != nil {
 		return err
 		// TODO log first param (amount of bytes written) if error
 	}
@@ -156,35 +107,12 @@ func (s *Client) Send(payload []byte) ([]byte, error) {
 }
 
 func (s *Client) Close() error {
-	if err := s.Conn.Close(); err != nil {
+	if err := s.conn.Close(); err != nil {
 		return err
 	}
 
-	s.Conn = nil
+	s.conn = nil
 	return nil
-}
-
-func (s *Client) Hello() (epp.Greeting, error) {
-	if s.Conn != nil {
-		hello := epp.APIHello{
-			XMLName: xml.Name{},
-			Xmlns:   epp.EPPNamespace,
-		}
-		helloMsg, _ := xml.MarshalIndent(hello, "", "  ")
-		apiResp, err := s.Send(helloMsg)
-		if err != nil {
-			return epp.Greeting{}, err
-		}
-
-		greeting, err := unmarshalGreeting(apiResp)
-		if err != nil {
-			return epp.Greeting{}, err
-		}
-
-		return greeting, nil
-	}
-
-	return epp.Greeting{}, errors.New("Uninitialized connection, unable to connect to server.")
 }
 
 func readStreamToBytes(conn net.Conn, rawResponse int32) ([]byte, error) {
@@ -196,21 +124,6 @@ func readStreamToBytes(conn net.Conn, rawResponse int32) ([]byte, error) {
 		// TODO log first param (amount of bytes read) if error
 	}
 	return buf.Bytes(), nil
-}
-
-func unmarshalGreeting(rawGreeting []byte) (epp.Greeting, error) {
-	var greeting epp.APIGreeting
-	if err := xml.Unmarshal(rawGreeting, &greeting); err != nil {
-		return epp.Greeting{}, err
-	}
-
-	formattedDate, err := parseDate(greeting.Greeting.RawDate, time.RFC3339Nano)
-	if err != nil {
-		return epp.Greeting{}, errors.Wrap(err, "Invalid or non-existent date in greeting")
-	}
-	greeting.Greeting.SvDate = formattedDate
-
-	return greeting.Greeting, nil
 }
 
 func createRequestID(length int) string {
@@ -229,3 +142,8 @@ func parseDate(rawDate string, timeFormat string) (time.Time, error) {
 
 	return formattedDate, nil
 }
+
+func (s *Client) logAPIConnectionError(err error, args ...string) {
+	s.log.Error("API connection failed when making a request", "error", err, args)
+}
+
