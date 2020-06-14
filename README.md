@@ -41,7 +41,7 @@ func main() {
 	if err = client.Connect(); err != nil {
 		panic(err)
 	}
-	fmt.Printf("Connected successfully, server time is now %s\n\n", client.Greeting.SvDate)
+	fmt.Printf("Connected successfully, server time is now %s\n", client.Greeting.SvDate)
 
 	greeting, err := client.Hello()
 	if err != nil {

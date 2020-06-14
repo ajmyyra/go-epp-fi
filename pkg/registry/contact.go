@@ -38,7 +38,7 @@ func (s *Client) CheckContacts(contacts ...string) ([]epp.ItemCheck, error) {
 
 	var checkItems []epp.ItemCheck
 	for _, item := range checkResult.Response.ResData.ChkData.Cd {
-		if item.Id.Avail == 1 {
+		if item.ContactId.Avail == 1 {
 			item.IsAvailable = true
 		}
 
@@ -50,6 +50,10 @@ func (s *Client) CheckContacts(contacts ...string) ([]epp.ItemCheck, error) {
 
 func (s *Client) CreateContact(contact epp.ContactInfo) (string, error) {
 	reqID := createRequestID(reqIDLength)
+
+	if err := contact.Validate(); err != nil {
+		return "", err
+	}
 
 	contactCreate := epp.APIContactCreation{}
 	contactCreate.Xmlns = epp.EPPNamespace
@@ -63,16 +67,14 @@ func (s *Client) CreateContact(contact epp.ContactInfo) (string, error) {
 		return "", err
 	}
 
-	rawCreateResp, err := s.Send(createData)
+	createRawResp, err := s.Send(createData)
 	if err != nil {
 		s.logAPIConnectionError(err, "requestID", reqID)
 		return "", err
 	}
 
-	s.log.Debug("resp", string(rawCreateResp)) //DEBUG
-
 	var createResult epp.APIResult
-	if err = xml.Unmarshal(rawCreateResp, &createResult); err != nil {
+	if err = xml.Unmarshal(createRawResp, &createResult); err != nil {
 		return "", err
 	}
 
@@ -80,7 +82,7 @@ func (s *Client) CreateContact(contact epp.ContactInfo) (string, error) {
 		return "", errors.New("Request failed: " + createResult.Response.Result.Msg)
 	}
 
-	contactID := createResult.Response.ResData.Create.ID
+	contactID := createResult.Response.ResData.CreateData.ID
 	s.log.Info("Successfully created a new contact.", "contactID", contactID, "reqId", reqID)
 
 	return contactID, nil
@@ -116,11 +118,15 @@ func (s *Client) GetContact(contactId string) (epp.ContactResponse, error) {
 		return epp.ContactResponse{}, errors.New("Request failed: " + infoResp.Response.Result.Msg)
 	}
 
-	return infoResp.Response.ResData.InfData, nil
+	return infoResp.Response.ResData.ContactInfo, nil
 }
 
 func (s *Client) UpdateContact(contactID string, contact epp.ContactInfo) error {
 	reqID := createRequestID(reqIDLength)
+
+	if err := contact.Validate(); err != nil {
+		return err
+	}
 
 	contactUpdate := epp.APIContactUpdate{}
 	contactUpdate.Xmlns = epp.EPPNamespace

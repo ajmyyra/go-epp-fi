@@ -39,7 +39,7 @@ type APIContactInfoResponse struct {
 	Response struct {
 		Result Result `xml:"result"`
 		ResData struct {
-			InfData ContactResponse `xml:"infData"`
+			ContactInfo ContactResponse `xml:"infData"`
 		} `xml:"resData"`
 		TrID Transaction `xml:"trID"`
 	} `xml:"response"`
@@ -173,8 +173,6 @@ func NewPrivatePersonContact(role int, finnish bool, firstName, lastName, idNumb
 		isFinnish = 1
 	}
 
-	// TODO validations
-
 	contact := ContactInfo{
 		Xmlns:      ContactNamespace,
 		Role:       role,
@@ -212,8 +210,6 @@ func NewBusinessContact(role int, finnish bool, orgName, registerNumber, contact
 		isFinnish = 1
 	}
 
-	// TODO validate
-
 	contact := ContactInfo{
 		Xmlns:      ContactNamespace,
 		Role:       role,
@@ -242,4 +238,9 @@ func NewBusinessContact(role int, finnish bool, orgName, registerNumber, contact
 	}
 
 	return contact, nil
+}
+
+func (s *ContactInfo) Validate() error {
+	// TODO
+	return nil
 }

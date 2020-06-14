@@ -7,4 +7,5 @@ const (
 	HostNamespace = "urn:ietf:params:xml:ns:host-1.0"
 	SecDNSNamespace = "urn:ietf:params:xml:ns:secDNS-1.1"
 	DomainExtNamespace = "urn:ietf:params:xml:ns:domain-ext-1.0"
+	DomainXsiNamespace = "http://www.w3.org/2001/XMLSchema-instance"
 )

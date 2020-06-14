@@ -3,6 +3,9 @@
 # Editors
 .idea
 
+# Env variables
+.env
+
 # Test binary, built with `go test -c`
 *.test
 

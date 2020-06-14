@@ -23,17 +23,25 @@ type ResData struct {
 	ChkData       struct {
 		Cd        []ItemCheck `xml:"cd"`
 	} `xml:"chkData"`
-	Create struct {
-		ID         string `xml:"id"`
-		CreateDate string `cml:"crDate"`
-	} `xml:"creData"`
+	CreateData CreateData `xml:"creData"`
+}
+
+type CreateData struct {
+	ID         string `xml:"id"`
+	Name       string `xml:"name"`
+	CreateDate string `xml:"crDate"`
+	ExpireDate string `xml:"exDate"`
 }
 
 type ItemCheck struct {
-	Id struct {
+	ContactId struct {
 		Name  string `xml:",chardata"`
 		Avail int    `xml:"avail,attr"`
 	} `xml:"id"`
+	Domain struct {
+		Name  string `xml:",chardata"`
+		Avail int    `xml:"avail,attr"`
+	} `xml:"name"`
 	Reason      string `xml:"reason"`
 	IsAvailable bool
 }
