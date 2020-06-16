@@ -6,8 +6,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const pollDate = "2006-01-02T15:04:05"
-
 func (s *Client) Poll() (epp.PollMessage, error) {
 	reqID := createRequestID(reqIDLength)
 
@@ -40,7 +38,7 @@ func (s *Client) Poll() (epp.PollMessage, error) {
 	}
 
 
-	date, err := parseDate(pollResp.Response.MsgQ.RawQDate, pollDate)
+	date, err := parseDate(pollResp.Response.MsgQ.RawQDate)
 	if err != nil {
 		return epp.PollMessage{}, err
 	}

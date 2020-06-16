@@ -89,6 +89,7 @@ func (s *Client) Write(payload []byte) error {
 }
 
 func (s *Client) Send(payload []byte) ([]byte, error) {
+	s.log.Debug("Sending message:\n" + string(payload))
 	err := s.Write(payload)
 	if err != nil {
 		// TODO log error
@@ -102,6 +103,8 @@ func (s *Client) Send(payload []byte) ([]byte, error) {
 		// TODO log error
 		return nil, err
 	}
+
+	s.log.Debug("Received response:\n" + string(apiResp))
 
 	return apiResp, nil
 }
@@ -134,13 +137,31 @@ func createRequestID(length int) string {
 	return string(reqID)
 }
 
-func parseDate(rawDate string, timeFormat string) (time.Time, error) {
-	formattedDate, err := time.Parse(timeFormat, rawDate)
-	if err != nil {
-		return time.Time{}, err
+func parseDate(rawDate string) (time.Time, error) {
+	emptyDateFormat := "0001-01-01T00:00:00"
+	greetingDateFormat := time.RFC3339Nano
+	pollDateFormat := "2006-01-02T15:04:05"
+	domainDateFormat := "2006-01-02T15:04:05.000"
+	renewalDateFormat := "2006-01-03T15:04:05.0Z"
+
+	if rawDate == emptyDateFormat {
+		return time.Time{}, nil
 	}
 
-	return formattedDate, nil
+	if date, err := time.Parse(greetingDateFormat, rawDate); err == nil {
+		return date, nil
+	}
+	if date, err := time.Parse(domainDateFormat, rawDate); err == nil {
+		return date, nil
+	}
+	if date, err := time.Parse(pollDateFormat, rawDate); err == nil {
+		return date, nil
+	}
+	if date, err := time.Parse(renewalDateFormat, rawDate); err == nil {
+		return date, nil
+	}
+
+	return time.Time{}, errors.New("Unrecognised date format: " + rawDate)
 }
 
 func (s *Client) logAPIConnectionError(err error, args ...string) {

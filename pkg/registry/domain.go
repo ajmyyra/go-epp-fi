@@ -116,7 +116,34 @@ func (s *Client) GetDomain(domain string) (epp.DomainInfoResp, error) {
 		return epp.DomainInfoResp{}, errors.New("Request failed: " + infoResp.Response.Result.Msg)
 	}
 
-	return infoResp.Response.ResData.DomainInfo, nil
+	domInfo := infoResp.Response.ResData.DomainInfo
+
+	domInfo.AutoRenewDate, err = parseDate(domInfo.RawRenewDate)
+	if err != nil {
+		return epp.DomainInfoResp{}, err
+	}
+
+	domInfo.CrDate, err = parseDate(domInfo.RawCrDate)
+	if err != nil {
+		return epp.DomainInfoResp{}, err
+	}
+
+	domInfo.UpDate, err = parseDate(domInfo.RawUpDate)
+	if err != nil {
+		return epp.DomainInfoResp{}, err
+	}
+
+	domInfo.ExDate, err = parseDate(domInfo.RawExDate)
+	if err != nil {
+		return epp.DomainInfoResp{}, err
+	}
+
+	domInfo.TrDate, err = parseDate(domInfo.RawTrDate)
+	if err != nil {
+		return epp.DomainInfoResp{}, err
+	}
+
+	return domInfo, nil
 }
 
 func (s *Client) UpdateDomain(update epp.DomainUpdate) error {
@@ -151,17 +178,124 @@ func (s *Client) UpdateDomain(update epp.DomainUpdate) error {
 	return nil
 }
 
-func (s *Client) RenewDomain(domain string, years int) error {
-	// TODO
-	return nil
+func (s *Client) RenewDomain(domain, currentExpiration string, years int) (epp.RenewalData, error) {
+	reqID := createRequestID(reqIDLength)
+
+	domainRenewal := epp.APIDomainRenewal{}
+	domainRenewal.Xmlns = epp.EPPNamespace
+	domainRenewal.Command.Renew.DomainRenew.Xmlns = epp.DomainNamespace
+	domainRenewal.Command.ClTRID = reqID
+
+	domainRenewal.Command.Renew.DomainRenew.Name = domain
+	domainRenewal.Command.Renew.DomainRenew.CurExpDate = currentExpiration
+	domainRenewal.Command.Renew.DomainRenew.Period.Unit = "y"
+	domainRenewal.Command.Renew.DomainRenew.Period.Years = years
+
+	renewalData, err := xml.MarshalIndent(domainRenewal, "", "  ")
+	if err != nil {
+		return epp.RenewalData{}, err
+	}
+
+	renewRawResp, err := s.Send(renewalData)
+	if err != nil {
+		s.logAPIConnectionError(err, "requestID", reqID)
+		return epp.RenewalData{}, err
+	}
+
+	var renewResp epp.APIResult
+	if err = xml.Unmarshal(renewRawResp, &renewResp); err != nil {
+		return epp.RenewalData{}, err
+	}
+
+	if renewResp.Response.Result.Code != 1000 {
+		return epp.RenewalData{}, errors.New("Request failed: " + renewResp.Response.Result.Msg)
+	}
+
+	renewalInfo := renewResp.Response.ResData.RenewalData
+	renewalInfo.ExpireDate, err = parseDate(renewalInfo.RawExpDate)
+	if err != nil {
+		return epp.RenewalData{}, err
+	}
+
+	return renewalInfo, nil
 }
 
-func (s *Client) TransferDomain(domain, transferKey string) error {
-	// TODO
-	return nil
+func (s *Client) TransferDomain(domain, transferKey string, newNameservers []string) (epp.TransferData, error) {
+	reqID := createRequestID(reqIDLength)
+
+	domainTransfer := epp.APIDomainTransfer{}
+	domainTransfer.Xmlns = epp.EPPNamespace
+	domainTransfer.Command.Transfer.DomainTransfer.Xmlns = epp.DomainNamespace
+	domainTransfer.Command.ClTRID = reqID
+
+	domainTransfer.Command.Transfer.Op = "request"
+	domainTransfer.Command.Transfer.DomainTransfer.Name = domain
+	domainTransfer.Command.Transfer.DomainTransfer.AuthInfo.TransferKey = transferKey
+
+	if newNameservers != nil {
+		domainTransfer.Command.Transfer.DomainTransfer.Ns = &epp.DomainNameservers{
+			HostObj:  newNameservers,
+		}
+	}
+
+	transferData, err := xml.MarshalIndent(domainTransfer, "", "  ")
+	if err != nil {
+		return epp.TransferData{}, err
+	}
+
+	transferRawResp, err := s.Send(transferData)
+	if err != nil {
+		s.logAPIConnectionError(err, "requestID", reqID)
+		return epp.TransferData{}, err
+	}
+
+	var transferResp epp.APIResult
+	if err = xml.Unmarshal(transferRawResp, &transferResp); err != nil {
+		return epp.TransferData{}, err
+	}
+
+	if transferResp.Response.Result.Code != 1000 {
+		return epp.TransferData{}, errors.New("Request failed: " + transferResp.Response.Result.Msg)
+	}
+
+	transfer := transferResp.Response.ResData.TransferData
+	transfer.ReDate, err = parseDate(transfer.ReRawDate)
+	if err != nil {
+		return epp.TransferData{}, err
+	}
+
+	return transfer, nil
 }
 
 func (s *Client) DeleteDomain(domain string) error {
-	// TODO
+	reqID := createRequestID(reqIDLength)
+
+	domainDeletion := epp.APIDomainDeletion{}
+	domainDeletion.Xmlns = epp.EPPNamespace
+	domainDeletion.Command.Delete.DomainDelete.Xmlns = epp.DomainNamespace
+	domainDeletion.Command.ClTRID = reqID
+
+	domainDeletion.Command.Delete.DomainDelete.Name = domain
+
+	deleteData, err := xml.MarshalIndent(domainDeletion, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	deleteRawResp, err := s.Send(deleteData)
+	if err != nil {
+		s.logAPIConnectionError(err, "requestID", reqID)
+		return err
+	}
+
+	var deleteResp epp.APIResult
+	if err = xml.Unmarshal(deleteRawResp, &deleteResp); err != nil {
+		return err
+	}
+
+	if deleteResp.Response.Result.Code != 1000 {
+		return errors.New("Request failed: " + deleteResp.Response.Result.Msg)
+	}
+
 	return nil
 }

@@ -1,6 +1,9 @@
 package epp
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"time"
+)
 
 type APIResult struct {
 	XMLName  xml.Name `xml:"epp"`
@@ -21,9 +24,11 @@ type ResData struct {
 	BalanceAmount int    `xml:"balanceamount"`
 	Timestamp     string `xml:"timestamp"`
 	ChkData       struct {
-		Cd        []ItemCheck `xml:"cd"`
+		Cd []ItemCheck `xml:"cd"`
 	} `xml:"chkData"`
-	CreateData CreateData `xml:"creData"`
+	CreateData  CreateData `xml:"creData"`
+	RenewalData RenewalData `xml:"renData"`
+	TransferData TransferData `xml:"trnData"`
 }
 
 type CreateData struct {
@@ -31,6 +36,22 @@ type CreateData struct {
 	Name       string `xml:"name"`
 	CreateDate string `xml:"crDate"`
 	ExpireDate string `xml:"exDate"`
+}
+
+type RenewalData struct {
+	Name       string `xml:"name"`
+	RawExpDate string `xml:"exDate"`
+	ExpireDate time.Time
+}
+
+type TransferData struct {
+	Xmlns     string `xml:"obj,attr"`
+	Name      string `xml:"name"`
+	TrStatus  string `xml:"trStatus"`
+	ReID      string `xml:"reID"`
+	ReRawDate string `xml:"reDate"`
+	ReDate    time.Time
+	AcID      string `xml:"acID"`
 }
 
 type ItemCheck struct {

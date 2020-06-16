@@ -4,7 +4,6 @@ import (
 	"encoding/xml"
 	"github.com/ajmyyra/go-epp-fi/pkg/epp"
 	"github.com/pkg/errors"
-	"time"
 )
 
 func (s *Client) Hello() (epp.Greeting, error) {
@@ -37,7 +36,7 @@ func unmarshalGreeting(rawGreeting []byte) (epp.Greeting, error) {
 		return epp.Greeting{}, err
 	}
 
-	formattedDate, err := parseDate(greeting.Greeting.RawDate, time.RFC3339Nano)
+	formattedDate, err := parseDate(greeting.Greeting.RawDate)
 	if err != nil {
 		return epp.Greeting{}, errors.Wrap(err, "Invalid or non-existent date in greeting")
 	}
