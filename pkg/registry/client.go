@@ -2,6 +2,7 @@ package registry
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"github.com/ajmyyra/go-epp-fi/pkg/epp"
 	"github.com/gemalto/flume"
@@ -67,6 +68,16 @@ func NewRegistryClient(username, password, serverHost string, serverPort int, cl
 	rand.Seed(time.Now().UnixNano())
 
 	return &client, nil
+}
+
+func (s *Client) SetCACertificates(caCerts []byte) error {
+	roots := x509.NewCertPool()
+	if ok := roots.AppendCertsFromPEM(caCerts); !ok {
+		return errors.New("Unable to parse given CA certificates.")
+	}
+
+	s.tlsConfig.RootCAs = roots
+	return nil
 }
 
 func (s *Client) SetReadTimeout(seconds int) error {
