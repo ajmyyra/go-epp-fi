@@ -9,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"net"
+	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -19,12 +21,12 @@ func TestConnectionAndHello(t *testing.T) {
 	}
 	defer eppTestServer.Close()
 
-	eppTestClient, err := createEPPTestClient("127.0.0.1", 12001)
+	eppTestClient, err := createEPPTestClient("test", "test123", "127.0.0.1", 12001)
 	if err != nil {
 		t.Fatalf("Error when creating client for tests: %v\n", err)
 	}
 
-	eppTestServer.SetupNewResponses([]byte(helloReq), []byte(greeting), []byte("TODO"))
+	eppTestServer.SetupNewResponses(helloReq, greeting, failedCommand)
 
 	if err = eppTestClient.Connect(); err != nil {
 		t.Fatalf("Connecting failed: %v\n", err)
@@ -39,7 +41,7 @@ func TestConnectionAndHello(t *testing.T) {
 	}
 }
 
-func createEPPTestClient(serverHost string, serverPort int) (*Client, error) {
+func createEPPTestClient(user, password, serverHost string, serverPort int) (*Client, error) {
 	clientCert, err := ioutil.ReadFile("../../testtmp/testclient.crt")
 	if err != nil {
 		return nil, errors.Wrap(err, "Have the test certificates been created by running 'make create-test-certs'?")
@@ -53,7 +55,7 @@ func createEPPTestClient(serverHost string, serverPort int) (*Client, error) {
 		return nil, errors.Wrap(err, "Have the test certificates been created by running 'make create-test-certs'?")
 	}
 
-	client, err := NewRegistryClient("test", "test123", "127.0.0.1", 12001, clientKey, clientCert)
+	client, err := NewRegistryClient(user, password, serverHost, serverPort, clientKey, clientCert)
 	if err != nil {
 		return nil, errors.Wrap(err, "Problem creating a new test client.")
 	}
@@ -131,56 +133,72 @@ func (s *EPPTestServer) handleClientConnection(conn net.Conn) {
 		return
 	}
 
-	var rawResponse int32
+	for {
+		var rawResponse int32
 
-	err = binary.Read(conn, binary.BigEndian, &rawResponse)
-	if err != nil {
-		fmt.Println("Problem when reading from connection: " + err.Error())
-		return
-	}
+		err = binary.Read(conn, binary.BigEndian, &rawResponse)
+		if err != nil {
+			// Client has closed the connection, so we can close it as well.
+			break
+		}
 
-	rawResponse -= 4
-	if rawResponse < 0 {
-		fmt.Println("Problem when reading from client: unexpectedEOF")
-		return
-	}
+		rawResponse -= 4
+		if rawResponse < 0 {
+			fmt.Println("Problem when reading from client: unexpectedEOF")
+			break
+		}
 
-	newReq, err := readStreamToBytes(conn, rawResponse)
-	if err != nil {
-		fmt.Println("Problem when reading client request: " + err.Error())
-		return
-	}
+		newReq, err := readStreamToBytes(conn, rawResponse)
+		if err != nil {
+			fmt.Println("Problem when reading client request: " + err.Error())
+			break
+		}
 
-	expected := <- s.expectedReq
-	success := <- s.successResp
-	error := <- s.errorResp
+		expected := <- s.expectedReq
+		success := <- s.successResp
+		error := <- s.errorResp
 
-	comparison := bytes.Compare(expected, newReq)
-	var writeBack []byte
-	if comparison == 0 {
-		writeBack = success
-	} else {
-		fmt.Println("Comparison failed, request did not match expected.")
-		fmt.Printf("Request:\n%+v\nExpected:\n%+v\n", string(newReq), string(expected))
-		writeBack = error
-	}
+		if strings.Contains(string(expected), "REPLACE_REQ_ID") {
+			reqId := ""
+			splitted := strings.Split(string(newReq), "clTRID")
 
-	sendBytesLength := uint32(4 + len(writeBack))
-	err = binary.Write(conn, binary.BigEndian, sendBytesLength)
-	if err != nil {
-		fmt.Println("Problem when writing response: " + err.Error())
-		return
-	}
-	if _, err = conn.Write(writeBack); err != nil {
-		fmt.Println("Problem when sending response: " + err.Error())
-		return
+			if len(splitted) == 3 {
+				reg, _ := regexp.Compile("[^A-Z0-9]+")
+				reqId = reg.ReplaceAllString(splitted[1], "")
+			}
+
+			expected = []byte(strings.Replace(string(expected), "REPLACE_REQ_ID", reqId, 1))
+			success = []byte(strings.Replace(string(success), "REPLACE_REQ_ID", reqId, 1))
+			error = []byte(strings.Replace(string(error), "REPLACE_REQ_ID", reqId, 1))
+		}
+
+		comparison := bytes.Compare(expected, newReq)
+		var response []byte
+		if comparison == 0 {
+			response = success
+		} else {
+			fmt.Println("Comparison failed, request did not match expected.")
+			fmt.Printf("Request:\n%+v\nExpected:\n%+v\n", string(newReq), string(expected))
+			response = error
+		}
+
+		sendBytesLength := uint32(4 + len(response))
+		err = binary.Write(conn, binary.BigEndian, sendBytesLength)
+		if err != nil {
+			fmt.Println("Problem when writing response: " + err.Error())
+			break
+		}
+		if _, err = conn.Write(response); err != nil {
+			fmt.Println("Problem when sending response: " + err.Error())
+			break
+		}
 	}
 }
 
-func (s *EPPTestServer) SetupNewResponses(expectedReq, successResp, errorResp []byte) {
-	s.expectedReq <- expectedReq
-	s.successResp <- successResp
-	s.errorResp <- errorResp
+func (s *EPPTestServer) SetupNewResponses(expectedReq, successResp, errorResp string) {
+	s.expectedReq <- []byte(expectedReq)
+	s.successResp <- []byte(successResp)
+	s.errorResp <- []byte(errorResp)
 }
 
 func (s *EPPTestServer) Close() error {
@@ -250,4 +268,16 @@ xmlns="urn:ietf:params:xml:ns:epp-1.0">
 var helloReq = `<?xml version="1.0" encoding="UTF-8"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
   <hello></hello>
+</epp>`
+
+var failedCommand = `<?xml version="1.0" encoding="utf-8"?>
+<epp xmlns:host="urn:ietf:params:xml:ns:host-1.0" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xmlns:obj="urn:ietf:params:xml:ns:obj-1.0" xmlns="urn:ietf:params:xml:ns:epp-1.0">
+  <response>
+    <result code="2400">
+      <msg>Command failed</msg>
+    </result>
+    <trID>
+      <svTRID>sgi4sx2</svTRID>
+    </trID>
+  </response>
 </epp>`

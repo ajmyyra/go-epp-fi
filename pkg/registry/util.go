@@ -6,6 +6,9 @@ import (
 	"time"
 )
 
+const reqIDChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const reqIDLength = 5
+
 func createRequestID(length int) string {
 	reqID := make([]byte, length)
 	for i := range reqID {

@@ -14,9 +14,6 @@ import (
 const APIVersion = "1.0"
 const APILanguage = "en"
 
-const reqIDChars = "ABCDEFGHIJKLMNOPQRSTUVXYZW0123456789"
-const reqIDLength = 5
-
 func (s *Client) Connect() error {
 	dialConn, err := tls.Dial("tcp", s.registryServer, &s.tlsConfig)
 	if err != nil {

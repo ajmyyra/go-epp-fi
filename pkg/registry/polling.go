@@ -37,7 +37,6 @@ func (s *Client) Poll() (epp.PollMessage, error) {
 		return epp.PollMessage{}, errors.New("Request failed: " + pollResp.Response.Result.Msg)
 	}
 
-
 	date, err := parseDate(pollResp.Response.MsgQ.RawQDate)
 	if err != nil {
 		return epp.PollMessage{}, err
@@ -58,7 +57,7 @@ func (s *Client) PollAck(id string) (int, error) {
 	ackReq.Command.Poll.MsgID = id
 	ackReq.Command.ClTRID = reqID
 
-	ackData, err := xml.Marshal(ackReq)
+	ackData, err := xml.MarshalIndent(ackReq, "", "  ")
 	if err != nil {
 		return -1, err
 	}
@@ -83,6 +82,6 @@ func (s *Client) PollAck(id string) (int, error) {
 	}
 
 	messagesLeft := ackResp.Response.MsgQ.Count
-	s.log.Info("Message acked successfully.", "message", id, "messagesLeft", messagesLeft)
+	s.log.Debug("Message acknowledged successfully.", "message", id, "messagesLeft", messagesLeft)
 	return messagesLeft, nil
 }

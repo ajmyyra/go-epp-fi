@@ -9,10 +9,25 @@ Currently done:
 - FI EPP extensions (login, logout, balance checking, polling & acking messages)
 - Contacts (check, create, read, update, delete)
 - Domains (check, create, read, update, delete, renew, transfer)
+- Test base for easily test new functions work as they should.
 
 I'm planning to proceed in the following order:
 - Host objects (create, read, update, delete)
 - FI EPP specialities (transfer lock, DNSSec)
+- Small client for controlling contacts & domains.
+
+## Structure
+
+Types for EPP objects can be found under pkg/epp.
+Client functionality (that utilizes EPP objects) is available under pkg/registry.
+
+## Tests
+
+Tests for client functionality can be run after local certificates have been created.
+Certificate creation has been scripted in Makefile, and creation happens by running `make create-test-certs`.
+After this, all tests can be run with the command `make test`.
+
+OpenSSL is required for certificate creation, but tests themselves won't need it.
 
 ## Raw example usage without any features
 
