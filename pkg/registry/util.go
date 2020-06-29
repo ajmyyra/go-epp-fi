@@ -24,6 +24,10 @@ func parseDate(rawDate string) (time.Time, error) {
 	domainDateFormat := "2006-01-02T15:04:05.000"
 	renewalDateFormat := "2006-01-03T15:04:05.0Z"
 
+	if rawDate == "" {
+		return time.Time{}, nil
+	}
+
 	if rawDate == emptyDateFormat {
 		return time.Time{}, nil
 	}

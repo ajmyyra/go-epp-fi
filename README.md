@@ -9,12 +9,13 @@ Currently done:
 - FI EPP extensions (login, logout, balance checking, polling & acking messages)
 - Contacts (check, create, read, update, delete)
 - Domains (check, create, read, update, delete, renew, transfer)
-- Test base for easily test new functions work as they should.
+- Host objects (create, read, update, delete)
+- Some tests and base for all API tests
 
 I'm planning to proceed in the following order:
-- Host objects (create, read, update, delete)
 - FI EPP specialities (transfer lock, DNSSec)
-- Small client for controlling contacts & domains.
+- Small client for controlling contacts, domains & hosts.
+- Hopefully more extensive testing. Would be cool to have it all covered.
 
 ## Structure
 

@@ -32,10 +32,12 @@ type ResData struct {
 }
 
 type CreateData struct {
-	ID         string `xml:"id"`
-	Name       string `xml:"name"`
-	CreateDate string `xml:"crDate"`
-	ExpireDate string `xml:"exDate"`
+	ID        string `xml:"id"`
+	Name      string `xml:"name"`
+	RawCrDate string `xml:"crDate"`
+	CrDate    time.Time
+	RawExDate string `xml:"exDate"`
+	ExDate    time.Time
 }
 
 type RenewalData struct {
@@ -59,7 +61,7 @@ type ItemCheck struct {
 		Name  string `xml:",chardata"`
 		Avail int    `xml:"avail,attr"`
 	} `xml:"id"`
-	Domain struct {
+	Name struct {
 		Name  string `xml:",chardata"`
 		Avail int    `xml:"avail,attr"`
 	} `xml:"name"`
