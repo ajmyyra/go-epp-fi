@@ -92,7 +92,7 @@ func (s *Client) Send(payload []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	time.Sleep(time.Duration(1) * time.Second)
+	time.Sleep(s.sendWaitTime)
 
 	apiResp, err := s.Read()
 	if err != nil {

@@ -5,16 +5,11 @@ import (
 )
 
 func TestMsgPollingAndAcknowledging(t *testing.T) {
-	eppTestServer, err := createEPPTestServer("127.0.0.1", 12003)
+	eppTestServer, eppTestClient, err := initTestServerClient(12003)
 	if err != nil {
-		t.Fatalf("Error when creating server for tests: %v\n", err)
+		t.Fatalf("Error when creating server or client for tests: %v\n", err)
 	}
 	defer eppTestServer.Close()
-
-	eppTestClient, err := createEPPTestClient("test", "test123", "127.0.0.1", 12003)
-	if err != nil {
-		t.Fatalf("Error when creating client for tests: %v\n", err)
-	}
 
 	eppTestServer.SetupNewResponses(expectedPollReq, newMessages, failedCommand)
 
@@ -44,16 +39,11 @@ func TestMsgPollingAndAcknowledging(t *testing.T) {
 }
 
 func TestEmptyMsgQueueAndWrongMsgId(t *testing.T) {
-	eppTestServer, err := createEPPTestServer("127.0.0.1", 12003)
+	eppTestServer, eppTestClient, err := initTestServerClient(12003)
 	if err != nil {
-		t.Fatalf("Error when creating server for tests: %v\n", err)
+		t.Fatalf("Error when creating server or client for tests: %v\n", err)
 	}
 	defer eppTestServer.Close()
-
-	eppTestClient, err := createEPPTestClient("test", "test123", "127.0.0.1", 12003)
-	if err != nil {
-		t.Fatalf("Error when creating client for tests: %v\n", err)
-	}
 
 	eppTestServer.SetupNewResponses(expectedPollReq, noNewMessages, failedCommand)
 

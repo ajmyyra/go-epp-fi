@@ -10,12 +10,11 @@ Currently done:
 - Contacts (check, create, read, update, delete)
 - Domains (check, create, read, update, delete, renew, transfer)
 - Host objects (create, read, update, delete)
-- Some tests and base for all API tests
+- Tests and base for all API tests
 
 I'm planning to proceed in the following order:
 - FI EPP specialities (transfer lock, DNSSec)
 - Small client for controlling contacts, domains & hosts.
-- Hopefully more extensive testing. Would be cool to have it all covered.
 
 ## Structure
 
@@ -49,7 +48,7 @@ func main() {
 		panic(err)
 	}
 
-	client, err := registry.NewRegistryClient("foo","bar","epptest.ficora.fi", 700, clientKey, clientCert)
+	client, err := registry.NewRegistryClient("username","password","epptest.ficora.fi", 700, clientKey, clientCert)
 	if err != nil {
 		panic(err)
 	}

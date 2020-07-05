@@ -18,6 +18,7 @@ type Client struct {
 	credentials    Credentials
 
 	conn           net.Conn
+	sendWaitTime   time.Duration
 	readTimeout    time.Duration
 	writeTimeout   time.Duration
 
@@ -42,6 +43,7 @@ func NewRegistryClient(username, password, serverHost string, serverPort int, cl
 
 	client := Client{
 		registryServer: registry,
+		sendWaitTime:   time.Duration(1) * time.Second,
 		readTimeout:    time.Duration(60) * time.Second,
 		writeTimeout:   time.Duration(60) * time.Second,
 		conn:           nil,
@@ -78,6 +80,10 @@ func (s *Client) SetCACertificates(caCerts []byte) error {
 
 	s.tlsConfig.RootCAs = roots
 	return nil
+}
+
+func (s *Client) SetSendWaitTime(dur time.Duration) {
+	s.sendWaitTime = dur
 }
 
 func (s *Client) SetReadTimeout(seconds int) error {

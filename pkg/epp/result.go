@@ -57,10 +57,6 @@ type TransferData struct {
 }
 
 type ItemCheck struct {
-	ContactId struct {
-		Name  string `xml:",chardata"`
-		Avail int    `xml:"avail,attr"`
-	} `xml:"id"`
 	Name struct {
 		Name  string `xml:",chardata"`
 		Avail int    `xml:"avail,attr"`

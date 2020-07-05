@@ -3,16 +3,11 @@ package registry
 import "testing"
 
 func TestLoginAndLogout(t *testing.T) {
-	eppTestServer, err := createEPPTestServer("127.0.0.1", 12002)
+	eppTestServer, eppTestClient, err := initTestServerClient(12002)
 	if err != nil {
-		t.Fatalf("Error when creating server for tests: %v\n", err)
+		t.Fatalf("Error when creating server or client for tests: %v\n", err)
 	}
 	defer eppTestServer.Close()
-
-	eppTestClient, err := createEPPTestClient("test", "test123", "127.0.0.1", 12002)
-	if err != nil {
-		t.Fatalf("Error when creating client for tests: %v\n", err)
-	}
 
 	eppTestServer.SetupNewResponses(expectedLogin, successfulLogin, failedLogin)
 

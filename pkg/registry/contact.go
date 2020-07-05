@@ -38,7 +38,7 @@ func (s *Client) CheckContacts(contacts ...string) ([]epp.ItemCheck, error) {
 
 	var checkItems []epp.ItemCheck
 	for _, item := range checkResult.Response.ResData.ChkData.Cd {
-		if item.ContactId.Avail == 1 {
+		if item.Name.Avail == 1 {
 			item.IsAvailable = true
 		}
 

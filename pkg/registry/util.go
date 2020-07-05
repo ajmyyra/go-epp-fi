@@ -51,3 +51,4 @@ func parseDate(rawDate string) (time.Time, error) {
 func (s *Client) logAPIConnectionError(err error, args ...string) {
 	s.log.Error("API connection failed when making a request", "error", err, args)
 }
+

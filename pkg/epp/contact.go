@@ -2,6 +2,7 @@ package epp
 
 import (
 	"encoding/xml"
+	"github.com/pkg/errors"
 )
 
 type APIContactCheck struct {
@@ -141,15 +142,15 @@ type ContactInfo struct {
 }
 
 type ContactPostalInfo struct {
-	Type           string `xml:"type,attr"`
-	IsFinnish      int `xml:"contact:isfinnish"`
-	FirstName      string `xml:"contact:firstname,omitempty"`
-	LastName       string `xml:"contact:lastname,omitempty"`
-	Name           string `xml:"contact:name,omitempty"`
-	Org            string `xml:"contact:org,omitempty"`
-	BirthDate      string `xml:"contact:birthDate,omitempty"`
-	Identity       string `xml:"contact:identity,omitempty"`
-	RegisterNumber string `xml:"contact:registernumber,omitempty"`
+	PostalInfoType string               `xml:"type,attr"`
+	IsFinnish      int                  `xml:"contact:isfinnish"`
+	FirstName      string               `xml:"contact:firstname,omitempty"`
+	LastName       string               `xml:"contact:lastname,omitempty"`
+	Name           string               `xml:"contact:name,omitempty"`
+	Org            string               `xml:"contact:org,omitempty"`
+	BirthDate      string               `xml:"contact:birthDate,omitempty"`
+	Identity       string               `xml:"contact:identity,omitempty"`
+	RegisterNumber string               `xml:"contact:registernumber,omitempty"`
 	Addr           ContactUpdateAddress `xml:"contact:addr"`
 }
 
@@ -162,9 +163,9 @@ type ContactUpdateAddress struct {
 }
 
 type ContactDisclosure struct {
-	Flag    string `xml:"flag,attr"`
-	Email   string `xml:"contact:email"`
-	Address string `xml:"contact:address"`
+	Flag    int `xml:"flag,attr"`
+	Email   int `xml:"contact:email"`
+	Address int `xml:"contact:address"`
 }
 
 func NewPrivatePersonContact(role int, finnish bool, firstName, lastName, idNumber, city, countryCode string, street []string, postalCode string, email, phone string, birthDate string) (ContactInfo, error) {
@@ -178,7 +179,7 @@ func NewPrivatePersonContact(role int, finnish bool, firstName, lastName, idNumb
 		Role:       role,
 		Type:       0,
 		PostalInfo: ContactPostalInfo{
-			Type:           "loc",
+			PostalInfoType: "loc",
 			IsFinnish:      isFinnish,
 			FirstName:      firstName,
 			LastName:       lastName,
@@ -195,9 +196,9 @@ func NewPrivatePersonContact(role int, finnish bool, firstName, lastName, idNumb
 		Email:      email,
 		LegalEmail: email,
 		Disclose:   ContactDisclosure{
-			Flag:    "0",
-			Email:   "0",
-			Address: "0",
+			Flag:    0,
+			Email:   0,
+			Address: 0,
 		},
 	}
 
@@ -215,7 +216,7 @@ func NewBusinessContact(role int, finnish bool, orgName, registerNumber, contact
 		Role:       role,
 		Type:       1,
 		PostalInfo: ContactPostalInfo{
-			Type:           "loc",
+			PostalInfoType: "loc",
 			IsFinnish:      isFinnish,
 			Name:           contactName,
 			Org:            orgName,
@@ -231,9 +232,9 @@ func NewBusinessContact(role int, finnish bool, orgName, registerNumber, contact
 		Email:      email,
 		LegalEmail: email,
 		Disclose:   ContactDisclosure{
-			Flag:    "0",
-			Email:   "0",
-			Address: "1",
+			Flag:    0,
+			Email:   0,
+			Address: 1,
 		},
 	}
 
@@ -241,6 +242,106 @@ func NewBusinessContact(role int, finnish bool, orgName, registerNumber, contact
 }
 
 func (s *ContactInfo) Validate() error {
-	// TODO
+	if s.PostalInfo.IsFinnish != 0 && s.PostalInfo.IsFinnish != 1 {
+		return errors.New("IsFinnish attribute is a numeric boolean, so it must be either 1 or 0.")
+	}
+	if s.PostalInfo.PostalInfoType != "loc" {
+		return errors.New("Type attribute for postal info must be 'loc'.")
+	}
+
+	if s.Role < 2 || s.Role > 5 {
+		return errors.New("Role must be between 2-5. See README.md for different roles.")
+	}
+	if s.Role == 5 {
+		if s.LegalEmail == "" {
+			return errors.New("LegalEmail must be defined for registrants (role 5).")
+		}
+	} else {
+		if s.Email == "" {
+			return errors.New("Email must be defined for non-registrants (role != 5)")
+		}
+	}
+
+	if s.Type == 0 {
+		if s.PostalInfo.FirstName == "" || s.PostalInfo.LastName == "" {
+			return errors.New("Private person (type 0) must have FirstName and LastName.")
+		}
+		if len(s.PostalInfo.FirstName) > 255 {
+			return errors.New("FirstName must have less than 255 characters.")
+		}
+		if len(s.PostalInfo.LastName) > 255 {
+			return errors.New("LastName must have less than 255 characters.")
+		}
+
+		if s.PostalInfo.Name != "" {
+			return errors.New("Private person's name is defined as FirstName and LastName.")
+		}
+
+		if s.PostalInfo.IsFinnish == 1 {
+			if s.PostalInfo.Identity == "" {
+				return errors.New("Finnish person must have their national identification number (hetu) defined as Identity.")
+			}
+		} else {
+			if s.PostalInfo.BirthDate == "" {
+				return errors.New("Non-finnish person must have their birthdate defined as YYYY-MM-DD.")
+			}
+		}
+	} else if s.Type >= 1 && s.Type <= 7 {
+		if s.PostalInfo.FirstName != "" || s.PostalInfo.LastName != "" {
+			return errors.New("Organisations may specify their contacts/departments name as Name.")
+		}
+		if len(s.PostalInfo.Name) > 255 {
+			return errors.New("Name must have less than 255 characters.")
+		}
+
+		if s.PostalInfo.Org == "" {
+			return errors.New("Organisations must specify their name as Org.")
+		}
+		if len(s.PostalInfo.Org) > 255 {
+			return errors.New("Org must be 2-255 characters long.")
+		}
+
+		if s.PostalInfo.RegisterNumber == "" {
+			return errors.New("Organisation must specify a valid RegisterNumber.")
+		}
+
+		if s.Disclose.Address == 0 {
+			return errors.New("Organisations cannot disclose their address.")
+		}
+	} else {
+		return errors.New("Type must be between 0-7. See README.md for different types.")
+	}
+
+	if len(s.PostalInfo.Addr.Street) < 1 || len(s.PostalInfo.Addr.Street) > 3 {
+		return errors.New("Street must have 1-3 items within the array.")
+	}
+	for _, street := range s.PostalInfo.Addr.Street {
+		if len(street) < 2 || len(street) > 255 {
+			return errors.New("Street array members must be 2-255 characters long.")
+		}
+	}
+
+	if len(s.PostalInfo.Addr.City) < 2 || len(s.PostalInfo.Addr.City) > 128 {
+		return errors.New("City must be 2-128 characters long.")
+	}
+
+	if len(s.PostalInfo.Addr.State) > 128 {
+		return errors.New("State must be 2-128 characters long, if defined.")
+	}
+
+	if s.PostalInfo.IsFinnish == 1 {
+		if len(s.PostalInfo.Addr.PostalCode) != 5 {
+			return errors.New("Finnish postal code must be 5 characters long.")
+		}
+	} else {
+		if len(s.PostalInfo.Addr.PostalCode) < 2 || len(s.PostalInfo.Addr.PostalCode) > 16 {
+			return errors.New("Non-Finnish postal code must be 2-16 characters long.")
+		}
+	}
+
+	if len(s.PostalInfo.Addr.Country) != 2 {
+		return errors.New("Country code must be ISO 3166-1 alpha-2 -formatted (2 characters long).")
+	}
+
 	return nil
 }
