@@ -11,9 +11,10 @@ Currently done:
 - Domains (check, create, read, update, delete, renew, transfer)
 - Host objects (create, read, update, delete)
 - Tests and base for all API tests
+- Some FI EPP specialities (transfer lock)
 
-I'm planning to proceed in the following order:
-- FI EPP specialities (transfer lock, DNSSec)
+Next up:
+- DNSSec support
 - Small client for controlling contacts, domains & hosts.
 
 ## Structure

@@ -2,8 +2,16 @@ package epp
 
 import (
 	"encoding/xml"
+	"errors"
+	"strings"
 	"time"
 )
+
+const transferKeyLowerCaseLetters = "abcdefghijklmnopqrstuvwxyz"
+const transferKeyUpperCaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const transferKeyNumbers = "0123456789"
+const transferKeySpecialLetters = "!\"#$%'()*+,-./:;=@[\\]^_'{|}~)"
+
 
 type APIDomainCheck struct {
 	XMLName xml.Name `xml:"epp"`
@@ -315,27 +323,90 @@ func NewDomainUpdateChangeOwnership(domain string, newRegistrant, ownershipChang
 	return ownershipChangeData
 }
 
-func NewDomainUpdateTransferKey(domain, newKey string) DomainUpdate {
+func NewDomainUpdateTransferKey(domain, newKey string) (DomainUpdate, error) {
+	if len(newKey) < 8 || len(newKey) > 64 {
+		return DomainUpdate{}, errors.New("transfer key must be 8-64 characters long")
+	}
+	lowerCaseLetters := false
+	upperCaseLetters := false
+	specialCharacters := false
+	numbers := false
+	for _, c := range newKey {
+		char := string(c)
+		if strings.Contains(transferKeyLowerCaseLetters, char) {
+			lowerCaseLetters = true
+		}
+		if strings.Contains(transferKeyUpperCaseLetters, char) {
+			upperCaseLetters = true
+		}
+		if strings.Contains(transferKeySpecialLetters, char) {
+			specialCharacters = true
+		}
+		if strings.Contains(transferKeyNumbers, char) {
+			numbers = true
+		}
+	}
+
+	if !lowerCaseLetters {
+		return DomainUpdate{}, errors.New("transfer key does not contain a lower case letter")
+	}
+	if !upperCaseLetters {
+		return DomainUpdate{}, errors.New("transfer key does not contain an upper case letter")
+	}
+	if !specialCharacters {
+		return DomainUpdate{}, errors.New("transfer key does not contain a special character")
+	}
+	if !numbers {
+		return DomainUpdate{}, errors.New("transfer key does not contain a number")
+	}
+
+
 	transferKeyData := createDomainUpdateBase(domain)
 	transferKeyData.Chg.AuthInfo = &DomainAuthInfo{
 		BrokerChangeKey: newKey,
 	}
 
-	return transferKeyData
+	return transferKeyData, nil
 }
 
-/*Transfer key validation:
-* 8-64 characters.
-* At least one small letter
-* At least one capital letter
-* At least one special character: "!\"#$%'()*+,-./:;=@[\\]^_'{|}~)"
-* At least one number
-*/
+func NewDomainUpdateActivateRegistryLock(domain string, numberToSend int, phoneNumbers ...string) (DomainUpdate, error)  {
+	if len(phoneNumbers) < 2 || len(phoneNumbers) > 3 {
+		return DomainUpdate{}, errors.New("registry lock requires 2-3 sms numbers for activation")
+	}
 
-// TODO
-// DomainUpdateActivateRegistryLock
-// DomainUpdateDeactivateRegistryLock
-// DomainUpdateRequestKeyForRegistryLock
+	activationData := createDomainUpdateBase(domain)
+	activationData.Chg.RegistryLock = &DomainRegistryLock{
+		Type:         "activate",
+		SmsNumber:    phoneNumbers,
+		NumberToSend: numberToSend,
+		AuthKey:      "domainauthkey",
+	}
+
+	return activationData, nil
+}
+
+func NewDomainUpdateDeactivateRegistryLock(domain, authKey string, numberToSend int, phoneNumbers ...string) DomainUpdate {
+	deactivationData := createDomainUpdateBase(domain)
+	deactivationData.Chg.RegistryLock = &DomainRegistryLock{
+		Type:         "deactivate",
+		SmsNumber:    phoneNumbers,
+		NumberToSend: numberToSend,
+		AuthKey:      authKey,
+	}
+
+	return deactivationData
+}
+
+func NewDomainUpdateRequestKeyForRegistryLock(domain string, numberToSend int) DomainUpdate {
+	requestKeyData := createDomainUpdateBase(domain)
+	requestKeyData.Chg.RegistryLock = &DomainRegistryLock{
+		Type:         "requestkey",
+		NumberToSend: numberToSend,
+		AuthKey:      "domainauthkey",
+	}
+
+	return requestKeyData
+}
 
 func createDomainUpdateBase(domain string) DomainUpdate {
 	updateData := DomainUpdate{}
