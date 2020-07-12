@@ -12,10 +12,11 @@ Currently done:
 - Host objects (create, read, update, delete)
 - Tests and base for all API tests
 - Some FI EPP specialities (transfer lock)
+- DNSSec support
 
 Next up:
-- DNSSec support
-- Small client for controlling contacts, domains & hosts.
+- Some tests for domain creation & updates
+- Small command line client for controlling contacts, domains & hosts.
 
 ## Structure
 

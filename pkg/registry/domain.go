@@ -178,6 +178,38 @@ func (s *Client) UpdateDomain(update epp.DomainUpdate) error {
 	return nil
 }
 
+func (s *Client) UpdateDomainExtensions(extUpdate epp.DomainExtension) error {
+	reqID := createRequestID(reqIDLength)
+
+	domainUpdate := epp.APIDomainUpdate{}
+	domainUpdate.Xmlns = epp.EPPNamespace
+	domainUpdate.Command.ClTRID = reqID
+
+	domainUpdate.Command.Extension = &extUpdate
+
+	updateData, err := xml.MarshalIndent(domainUpdate, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	updateRawResp, err := s.Send(updateData)
+	if err != nil {
+		s.logAPIConnectionError(err, "requestID", reqID)
+		return err
+	}
+
+	var updateResp epp.APIResult
+	if err = xml.Unmarshal(updateRawResp, &updateResp); err != nil {
+		return err
+	}
+
+	if updateResp.Response.Result.Code != 1000 {
+		return errors.New("Request failed: " + updateResp.Response.Result.Msg)
+	}
+
+	return nil
+}
+
 func (s *Client) RenewDomain(domain, currentExpiration string, years int) (epp.RenewalData, error) {
 	reqID := createRequestID(reqIDLength)
 

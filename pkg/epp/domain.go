@@ -76,6 +76,7 @@ type APIDomainUpdate struct {
 		Update struct {
 			DomainUpdate DomainUpdate `xml:"domain:update"`
 		} `xml:"update"`
+		Extension *DomainExtension `xml:"extension,omitempty"`
 		ClTRID string `xml:"clTRID"`
 	} `xml:"command"`
 }
@@ -149,18 +150,18 @@ type DomainInfoResp struct {
 	Ns struct {
 		HostObj []string `xml:"hostObj"`
 	} `xml:"ns"`
-	ClID        string `xml:"clID"`
-	CrID        string `xml:"crID"`
-	RawCrDate   string `xml:"crDate"`
-	CrDate      time.Time
-	RawUpDate   string `xml:"upDate"`
-	UpDate      time.Time
-	RawExDate   string `xml:"exDate"`
-	ExDate      time.Time
-	RawTrDate   string `xml:"trDate"`
-	TrDate      time.Time
-	AuthInfo    DomainAuthInfo `xml:"authInfo"`
-	DsData      []DomainDSData `xml:"dsData"`
+	ClID      string `xml:"clID"`
+	CrID      string `xml:"crID"`
+	RawCrDate string `xml:"crDate"`
+	CrDate    time.Time
+	RawUpDate string `xml:"upDate"`
+	UpDate    time.Time
+	RawExDate string `xml:"exDate"`
+	ExDate    time.Time
+	RawTrDate string `xml:"trDate"`
+	TrDate    time.Time
+	AuthInfo  DomainAuthInfoResp `xml:"authInfo"`
+	DsData    []DomainDSDataResp `xml:"dsData"`
 }
 
 type DomainDetails struct {
@@ -186,14 +187,14 @@ type DomainUpdate struct {
 		Ns         *DomainNameservers `xml:"domain:ns,omitempty"`
 	} `xml:"domain:add"`
 	Rem struct {
-		Status     *DomainStatus `xml:"domain:status,omitempty"`
-		Ns         *DomainNameservers `xml:"domain:ns,omitempty"`
+		Status     *DomainStatus       `xml:"domain:status,omitempty"`
+		Ns         *DomainNameservers  `xml:"domain:ns,omitempty"`
 		AuthInfo   *DomainAuthInfo `xml:"domain:authInfo,omitempty"`
 	} `xml:"domain:rem"`
 	Chg struct {
-		Registrant string `xml:"domain:registrant,omitempty"`
-		Contact    []DomainContact `xml:"domain:contact,omitempty"`
-		AuthInfo   *DomainAuthInfo `xml:"domain:authInfo,omitempty"`
+		Registrant string                `xml:"domain:registrant,omitempty"`
+		Contact    []DomainContact       `xml:"domain:contact,omitempty"`
+		AuthInfo   *DomainAuthInfo   `xml:"domain:authInfo,omitempty"`
 		RegistryLock *DomainRegistryLock `xml:"domain:registrylock,omitempty"`
 	} `xml:"domain:chg"`
 }
@@ -220,23 +221,59 @@ type DomainContact struct {
 	Type      string `xml:"type,attr,omitempty"`
 }
 
+type DomainAuthInfoResp struct {
+	BrokerChangeKey    string `xml:"pw,omitempty"`
+	OwnershipChangeKey string `xml:"pwregistranttransfer,omitempty"`
+}
+
 type DomainAuthInfo struct {
 	BrokerChangeKey    string `xml:"domain:pw,omitempty"`
 	OwnershipChangeKey string `xml:"domain:pwregistranttransfer,omitempty"`
 }
 
-type DomainDSData struct {
+type DomainDSDataResp struct {
 	KeyTag     string `xml:"keyTag"`
 	Alg        string `xml:"alg"`
 	DigestType string `xml:"digestType"`
 	Digest     string `xml:"digest"`
 	KeyData    struct {
-		Text     string `xml:",chardata"`
 		Flags    string `xml:"flags"`
 		Protocol string `xml:"protocol"`
 		Alg      string `xml:"alg"`
 		PubKey   string `xml:"pubKey"`
 	} `xml:"keyData"`
+}
+
+type DomainExtension struct {
+	SecDNSUpdate DomainSecDNSUpdate `xml:"secDNS:update"`
+}
+
+type DomainSecDNSUpdate struct {
+	Xmlns string `xml:"xmlns:secDNS,attr"`
+	Rem struct {
+		DsData []DomainDSData `secDNS:dsData`
+		RemoveAll bool `secDNS:all,omitempty`
+	} `xml:"secDNS:rem"`
+	Add struct {
+		DsData []DomainDSData `secDNS:dsData`
+	} `xml:"secDNS:add"`
+	Chg struct {
+	} `xml:"secDNS:chg"`
+}
+
+type DomainDSData struct {
+	KeyTag     int `xml:"secDNS:keyTag"`
+	Alg        int `xml:"secDNS:alg"`
+	DigestType int `xml:"secDNS:digestType"`
+	Digest     string `xml:"secDNS:digest"`
+	KeyData    DomainDSKeyData `xml:"secDNS:keyData"`
+}
+
+type DomainDSKeyData struct {
+	Flags    int `xml:"secDNS:flags"`
+	Protocol int `xml:"secDNS:protocol"`
+	Alg      int `xml:"secDNS:alg"`
+	PubKey   string `xml:"secDNS:pubKey"`
 }
 
 type DomainRegistryLock struct {
@@ -323,7 +360,7 @@ func NewDomainUpdateChangeOwnership(domain string, newRegistrant, ownershipChang
 	return ownershipChangeData
 }
 
-func NewDomainUpdateTransferKey(domain, newKey string) (DomainUpdate, error) {
+func NewDomainUpdateSetTransferKey(domain, newKey string) (DomainUpdate, error) {
 	if len(newKey) < 8 || len(newKey) > 64 {
 		return DomainUpdate{}, errors.New("transfer key must be 8-64 characters long")
 	}
@@ -367,6 +404,46 @@ func NewDomainUpdateTransferKey(domain, newKey string) (DomainUpdate, error) {
 	}
 
 	return transferKeyData, nil
+}
+
+func NewDomainUpdateRemoveTransferKey(domain, currentKey string) DomainUpdate {
+	transferKeyData := createDomainUpdateBase(domain)
+	transferKeyData.Rem.AuthInfo = &DomainAuthInfo{
+		BrokerChangeKey: currentKey,
+	}
+
+	return transferKeyData
+}
+
+func NewDomainSecDNSUpdate(newRecords, recordsToRemove []DomainDSData, removeAll bool) DomainSecDNSUpdate {
+	secDNSUpdate := DomainSecDNSUpdate{
+		Xmlns: SecDNSNamespace,
+	}
+
+	if newRecords != nil {
+		secDNSUpdate.Add.DsData = newRecords
+	}
+	if recordsToRemove != nil {
+		secDNSUpdate.Rem.DsData = recordsToRemove
+	}
+	secDNSUpdate.Rem.RemoveAll = removeAll
+
+	return secDNSUpdate
+}
+
+func NewDomainDNSSecRecord(keyTag, alg, digestType int, digest string, flags, protocol, keyAlg int, pubKey string) (DomainDSData, error) {
+	return DomainDSData{
+		KeyTag:     keyTag,
+		Alg:        alg,
+		DigestType: digestType,
+		Digest:     digest,
+		KeyData: DomainDSKeyData{
+			Flags:    flags,
+			Protocol: protocol,
+			Alg:      keyAlg,
+			PubKey:   pubKey,
+		},
+	}, nil
 }
 
 func NewDomainUpdateActivateRegistryLock(domain string, numberToSend int, phoneNumbers ...string) (DomainUpdate, error)  {
