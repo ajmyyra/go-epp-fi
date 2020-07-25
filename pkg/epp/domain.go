@@ -3,6 +3,7 @@ package epp
 import (
 	"encoding/xml"
 	"errors"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -179,6 +180,32 @@ type DomainDetails struct {
 	} `xml:"domain:contact,omitempty"`
 }
 
+func (s *DomainDetails) Validate() error {
+	var validDomain = regexp.MustCompile(`^[a-z0-9\-]+\.fi$`)
+
+	if !validDomain.MatchString(s.Name) {
+		return errors.New("invalid domain name: " + s.Name)
+	}
+
+	if len(s.Name) < 5 || len(s.Name) > 66 {
+		return errors.New("domain name must have at least 2 or a maximum of 63 characters before .fi")
+	}
+
+	if s.Registrant == "" {
+		return errors.New("registrant must be defined for a domain")
+	}
+
+	if s.Period.Unit != "y" {
+		return errors.New("only `y` is supported as a unit")
+	}
+
+	if s.Period.Amount < 1 || s.Period.Amount > 5 {
+		return errors.New("only amount between 1-5 are supported")
+	}
+
+	return nil
+}
+
 type DomainUpdate struct {
 	Xmlns string `xml:"xmlns:domain,attr"`
 	Name  string `xml:"domain:name"`
@@ -294,11 +321,6 @@ func NewDomainDetails(domain string, years int, registrant string, dnsServers []
 	details.Ns.HostObj = dnsServers
 
 	return details
-}
-
-func (s *DomainDetails) Validate() error {
-	// TODO
-	return nil
 }
 
 func NewDomainUpdateContacts(domain, newAdminContact, newTechContact string) DomainUpdate {
