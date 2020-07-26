@@ -37,10 +37,10 @@ type APIPollResponse struct {
 }
 
 type PollMessage struct {
-	Count int    `xml:"count,attr"`
-	ID    string `xml:"id,attr"`
-	RawQDate string `xml:"qDate"`
-	QDate time.Time
-	Msg   string `xml:"msg"`
-	Name  string
+	Count int    `xml:"count,attr" json:"count"`
+	ID    string `xml:"id,attr" json:"id"`
+	RawQDate string `xml:"qDate" json:"-"`
+	QDate time.Time `json:"date"`
+	Msg   string `xml:"msg" json:"msg"`
+	Name  string `json:"name"`
 }

@@ -16,11 +16,11 @@ var loginCmd = &cobra.Command{
 		}
 
 		if err = client.Connect(); err != nil {
-			return errors.Wrap(err, "Unable to connect.")
+			return errors.Wrap(err, "Unable to connect")
 		}
 
 		if err = client.Login(); err != nil {
-			return errors.Wrap(err, "Unable to login.")
+			return errors.Wrap(err, "Unable to login")
 		}
 
 		fmt.Println("Successfully logged in.")
@@ -41,11 +41,11 @@ var logoutCmd = &cobra.Command{
 		}
 
 		if err = client.Connect(); err != nil {
-			return errors.Wrap(err, "Unable to connect.")
+			return errors.Wrap(err, "Unable to connect")
 		}
 
 		if err = client.Logout(); err != nil {
-			return errors.Wrap(err, "Unable to logout.")
+			return errors.Wrap(err, "Unable to logout")
 		}
 
 		fmt.Println("Successfully logged out.")

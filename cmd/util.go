@@ -53,7 +53,7 @@ func getConfigString(name string) (string, error) {
 
 	value := viper.GetString(name)
 	if value == "" {
-		errMsg := fmt.Sprintf("Config variable %s (env: %s) not defined.", name, envName)
+		errMsg := fmt.Sprintf("Config variable %s (env: %s) not defined", name, envName)
 		return "", errors.New(errMsg)
 	}
 
