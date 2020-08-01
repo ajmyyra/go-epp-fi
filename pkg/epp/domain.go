@@ -259,14 +259,14 @@ type DomainAuthInfo struct {
 }
 
 type DomainDSDataResp struct {
-	KeyTag     string `xml:"keyTag"`
-	Alg        string `xml:"alg"`
-	DigestType string `xml:"digestType"`
+	KeyTag     int `xml:"keyTag"`
+	Alg        int `xml:"alg"`
+	DigestType int `xml:"digestType"`
 	Digest     string `xml:"digest"`
 	KeyData    struct {
-		Flags    string `xml:"flags"`
-		Protocol string `xml:"protocol"`
-		Alg      string `xml:"alg"`
+		Flags    int `xml:"flags"`
+		Protocol int `xml:"protocol"`
+		Alg      int `xml:"alg"`
 		PubKey   string `xml:"pubKey"`
 	} `xml:"keyData"`
 }

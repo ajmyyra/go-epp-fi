@@ -145,7 +145,7 @@ func (s *EPPTestServer) handleClientConnection(conn net.Conn) {
 
 		expected := <- s.expectedReq
 		success := <- s.successResp
-		error := <- s.errorResp
+		errMsg := <- s.errorResp
 
 		if strings.Contains(string(expected), "REPLACE_REQ_ID") {
 			reqId := ""
@@ -158,7 +158,7 @@ func (s *EPPTestServer) handleClientConnection(conn net.Conn) {
 
 			expected = []byte(strings.Replace(string(expected), "REPLACE_REQ_ID", reqId, 1))
 			success = []byte(strings.Replace(string(success), "REPLACE_REQ_ID", reqId, 1))
-			error = []byte(strings.Replace(string(error), "REPLACE_REQ_ID", reqId, 1))
+			errMsg = []byte(strings.Replace(string(errMsg), "REPLACE_REQ_ID", reqId, 1))
 		}
 
 		comparison := bytes.Compare(expected, newReq)
@@ -168,7 +168,7 @@ func (s *EPPTestServer) handleClientConnection(conn net.Conn) {
 		} else {
 			fmt.Println("Comparison failed, request did not match expected.")
 			fmt.Printf("Request:\n%+v\nExpected:\n%+v\n", string(newReq), string(expected))
-			response = error
+			response = errMsg
 		}
 
 		sendBytesLength := uint32(4 + len(response))

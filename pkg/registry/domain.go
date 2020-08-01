@@ -82,7 +82,17 @@ func (s *Client) CreateDomain(details epp.DomainDetails) (epp.CreateData, error)
 		return epp.CreateData{}, errors.New("Request failed: " + createResult.Response.Result.Msg)
 	}
 
-	return createResult.Response.ResData.CreateData, nil
+	createDataResp := createResult.Response.ResData.CreateData
+	createDataResp.CrDate, err = parseDate(createDataResp.RawCrDate)
+	if err != nil {
+		return createDataResp, err
+	}
+	createDataResp.ExDate, err = parseDate(createDataResp.RawExDate)
+	if err != nil {
+		return createDataResp, err
+	}
+
+	return createDataResp, nil
 }
 
 func (s *Client) GetDomain(domain string) (epp.DomainInfoResp, error) {
