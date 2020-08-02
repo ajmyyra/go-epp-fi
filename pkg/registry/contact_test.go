@@ -396,19 +396,6 @@ var expectedContactDeletion = `<?xml version="1.0" encoding="UTF-8"?>
   </command>
 </epp>`
 
-var successfulCommandResponse = `<?xml version="1.0" encoding="utf-8"?>
-<epp xmlns:host="urn:ietf:params:xml:ns:host-1.0" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xmlns:obj="urn:ietf:params:xml:ns:obj-1.0" xmlns="urn:ietf:params:xml:ns:epp-1.0">
-  <response>
-    <result code="1000">
-      <msg>Command completed successfully</msg>
-    </result>
-    <trID>
-      <clTRID>REPLACE_REQ_ID</clTRID>
-      <svTRID>sc3hblz</svTRID>
-    </trID>
-  </response>
-</epp>`
-
 var contactNotFound = `<?xml version="1.0" encoding="utf-8"?>
 <epp xmlns:host="urn:ietf:params:xml:ns:host-1.0" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xmlns:obj="urn:ietf:params:xml:ns:obj-1.0" xmlns="urn:ietf:params:xml:ns:epp-1.0">
   <response>

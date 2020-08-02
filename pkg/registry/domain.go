@@ -188,12 +188,14 @@ func (s *Client) UpdateDomain(update epp.DomainUpdate) error {
 	return nil
 }
 
-func (s *Client) UpdateDomainExtensions(extUpdate epp.DomainExtension) error {
+func (s *Client) UpdateDomainExtensions(domain string, extUpdate epp.DomainExtension) error {
 	reqID := createRequestID(reqIDLength)
 
 	domainUpdate := epp.APIDomainUpdate{}
 	domainUpdate.Xmlns = epp.EPPNamespace
 	domainUpdate.Command.ClTRID = reqID
+	domainUpdate.Command.Update.DomainUpdate.Xmlns = epp.DomainNamespace
+	domainUpdate.Command.Update.DomainUpdate.Name = domain
 
 	domainUpdate.Command.Extension = &extUpdate
 

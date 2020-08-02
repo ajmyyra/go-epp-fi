@@ -118,7 +118,6 @@ type APIDomainTransfer struct {
 			} `xml:"domain:transfer"`
 		} `xml:"transfer"`
 		ClTRID string `xml:"clTRID"`
-		SvTRID string `xml:"svTRID"`
 	} `xml:"command"`
 }
 
@@ -278,11 +277,11 @@ type DomainExtension struct {
 type DomainSecDNSUpdate struct {
 	Xmlns string `xml:"xmlns:secDNS,attr"`
 	Rem struct {
-		DsData []DomainDSData `secDNS:dsData`
-		RemoveAll bool `secDNS:all,omitempty`
+		DsData []DomainDSData `xml:"secDNS:dsData"`
+		RemoveAll bool `xml:"secDNS:all,omitempty"`
 	} `xml:"secDNS:rem"`
 	Add struct {
-		DsData []DomainDSData `secDNS:dsData`
+		DsData []DomainDSData `xml:"secDNS:dsData"`
 	} `xml:"secDNS:add"`
 	Chg struct {
 	} `xml:"secDNS:chg"`
@@ -437,7 +436,7 @@ func NewDomainUpdateRemoveTransferKey(domain, currentKey string) DomainUpdate {
 	return transferKeyData
 }
 
-func NewDomainSecDNSUpdate(newRecords, recordsToRemove []DomainDSData, removeAll bool) DomainSecDNSUpdate {
+func NewDomainDNSSecUpdateExtension(newRecords, recordsToRemove []DomainDSData, removeAll bool) DomainExtension {
 	secDNSUpdate := DomainSecDNSUpdate{
 		Xmlns: SecDNSNamespace,
 	}
@@ -448,12 +447,17 @@ func NewDomainSecDNSUpdate(newRecords, recordsToRemove []DomainDSData, removeAll
 	if recordsToRemove != nil {
 		secDNSUpdate.Rem.DsData = recordsToRemove
 	}
-	secDNSUpdate.Rem.RemoveAll = removeAll
+	if removeAll {
+		secDNSUpdate.Rem.RemoveAll = removeAll
+	}
 
-	return secDNSUpdate
+	extension := DomainExtension{SecDNSUpdate: secDNSUpdate}
+
+	return extension
 }
 
 func NewDomainDNSSecRecord(keyTag, alg, digestType int, digest string, flags, protocol, keyAlg int, pubKey string) (DomainDSData, error) {
+	// TODO add validation for valid algorithms etc.
 	return DomainDSData{
 		KeyTag:     keyTag,
 		Alg:        alg,

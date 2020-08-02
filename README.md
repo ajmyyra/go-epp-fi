@@ -10,13 +10,15 @@ Currently done:
 - Contacts (check, create, read, update, delete)
 - Domains (check, create, read, update, delete, renew, transfer)
 - Host objects (create, read, update, delete)
-- Tests and base for all API tests
+- Base for all API tests and tests for FI EPP extensions, contacts & domains
 - Some FI EPP specialities (transfer lock)
 - DNSSec support
+- Small command line client with support for FI EPP extensions
 
 Next up:
-- Some tests for domain creation & updates
-- Small command line client for controlling contacts, domains & hosts.
+- CLI support for controlling contacts & domains
+- Perhaps CLI support for RAW XML debugging (i.e. "send this file to server, print what comes back")
+- Publishing 1.0
 
 ## Structure
 
