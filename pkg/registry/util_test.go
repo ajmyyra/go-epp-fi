@@ -166,8 +166,9 @@ func (s *EPPTestServer) handleClientConnection(conn net.Conn) {
 		if comparison == 0 {
 			response = success
 		} else {
-			fmt.Println("Comparison failed, request did not match expected.")
-			fmt.Printf("Request:\n%+v\nExpected:\n%+v\n", string(newReq), string(expected))
+			// Uncomment if a failing test needs more verbosity
+			//fmt.Println("Comparison failed, request did not match expected.")
+			//fmt.Printf("Request:\n%+v\nExpected:\n%+v\n", string(newReq), string(expected))
 			response = errMsg
 		}
 
