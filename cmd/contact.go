@@ -12,7 +12,7 @@ import (
 
 var contactCmd = &cobra.Command{
 	Use:   "contact",
-	Short: "Show, create and edit contacts",
+	Short: "Show, create, edit & delete contacts",
 }
 
 var createContactCmd = &cobra.Command{
@@ -235,20 +235,6 @@ var showContactCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(contactCmd)
-	contactCmd.AddCommand(checkContactsCmd)
-	contactCmd.AddCommand(showContactCmd)
-	contactCmd.AddCommand(createContactCmd)
-	contactCmd.AddCommand(updateContactCmd)
-	contactCmd.AddCommand(deleteContactCmd)
-
-	showContactCmd.Flags().BoolP("json", "j", false, "Show contact information as JSON")
-
-	populateContactManagementFlags(createContactCmd)
-	populateContactManagementFlags(updateContactCmd)
-}
-
 func createContactInfo(cmd *cobra.Command) (epp.ContactInfo, error) {
 	contactType, _ := cmd.Flags().GetInt("type")
 
@@ -340,4 +326,18 @@ func populateContactManagementFlags(c *cobra.Command) {
 
 	c.Flags().String("email", "", "Email")
 	c.Flags().String("phone", "", "Phone")
+}
+
+func init() {
+	rootCmd.AddCommand(contactCmd)
+	contactCmd.AddCommand(checkContactsCmd)
+	contactCmd.AddCommand(showContactCmd)
+	contactCmd.AddCommand(createContactCmd)
+	contactCmd.AddCommand(updateContactCmd)
+	contactCmd.AddCommand(deleteContactCmd)
+
+	showContactCmd.Flags().BoolP("json", "j", false, "Show contact information as JSON")
+
+	populateContactManagementFlags(createContactCmd)
+	populateContactManagementFlags(updateContactCmd)
 }

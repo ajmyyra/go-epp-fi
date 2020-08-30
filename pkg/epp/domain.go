@@ -136,32 +136,32 @@ type APIDomainDeletion struct {
 }
 
 type DomainInfoResp struct {
-	Xmlns         string `xml:"domain,attr"`
-	Name          string `xml:"name"`
-	RegistryLock  string `xml:"registrylock"`
-	AutoRenew     string `xml:"autorenew"`
-	RawRenewDate  string `xml:"autorenewDate"`
-	AutoRenewDate time.Time
+	Xmlns         string `xml:"domain,attr" json:"-"`
+	Name          string `xml:"name" json:"name"`
+	RegistryLock  int `xml:"registrylock" json:"registry_lock"`
+	AutoRenew     int `xml:"autorenew" json:"autorenew"`
+	RawRenewDate  string `xml:"autorenewDate" json:"-"`
+	AutoRenewDate time.Time `json:"autorenew_date"`
 	DomainStatus  struct {
-		Status    string `xml:"s,attr"`
-	} `xml:"status"`
-	Registrant string `xml:"registrant"`
-	Contact    []DomainContact `xml:"contact"`
+		Status    string `xml:"s,attr" json:"status"`
+	} `xml:"status" json:"domain_status"`
+	Registrant string `xml:"registrant" json:"registrant"`
+	Contact    []DomainContact `xml:"contact" json:"contact,omitempty"`
 	Ns struct {
-		HostObj []string `xml:"hostObj"`
-	} `xml:"ns"`
-	ClID      string `xml:"clID"`
-	CrID      string `xml:"crID"`
-	RawCrDate string `xml:"crDate"`
-	CrDate    time.Time
-	RawUpDate string `xml:"upDate"`
-	UpDate    time.Time
-	RawExDate string `xml:"exDate"`
-	ExDate    time.Time
-	RawTrDate string `xml:"trDate"`
-	TrDate    time.Time
-	AuthInfo  DomainAuthInfoResp `xml:"authInfo"`
-	DsData    []DomainDSDataResp `xml:"dsData"`
+		HostObj []string `xml:"hostObj" json:"nameserver"`
+	} `xml:"ns" json:"ns"`
+	ClID      string `xml:"clID" json:"-"`
+	CrID      string `xml:"crID" json:"creator"`
+	RawCrDate string `xml:"crDate" json:"-"`
+	CrDate    time.Time `json:"created"`
+	RawUpDate string `xml:"upDate" json:"-"`
+	UpDate    time.Time `json:"updated"`
+	RawExDate string `xml:"exDate" json:"-"`
+	ExDate    time.Time `json:"expires"`
+	RawTrDate string `xml:"trDate" json:"-"`
+	TrDate    time.Time `json:"transferred"`
+	AuthInfo  DomainAuthInfoResp `xml:"authInfo" json:"auth_info,omitempty"`
+	DsData    []DomainDSDataResp `xml:"dsData" json:"dnssec,omitempty"`
 }
 
 type DomainDetails struct {
@@ -243,13 +243,13 @@ type DomainStatus struct {
 }
 
 type DomainContact struct {
-	AccountId string `xml:",chardata"`
-	Type      string `xml:"type,attr,omitempty"`
+	AccountId string `xml:",chardata" json:"account"`
+	Type      string `xml:"type,attr,omitempty" json:"type"`
 }
 
 type DomainAuthInfoResp struct {
-	BrokerChangeKey    string `xml:"pw,omitempty"`
-	OwnershipChangeKey string `xml:"pwregistranttransfer,omitempty"`
+	BrokerChangeKey    string `xml:"pw,omitempty" json:"broker_change_key,omitempty"`
+	OwnershipChangeKey string `xml:"pwregistranttransfer,omitempty" json:"ownership_change_key,omitempty"`
 }
 
 type DomainAuthInfo struct {
@@ -258,16 +258,16 @@ type DomainAuthInfo struct {
 }
 
 type DomainDSDataResp struct {
-	KeyTag     int `xml:"keyTag"`
-	Alg        int `xml:"alg"`
-	DigestType int `xml:"digestType"`
-	Digest     string `xml:"digest"`
+	KeyTag     int `xml:"keyTag" json:"key_tag"`
+	Alg        int `xml:"alg" json:"alg"`
+	DigestType int `xml:"digestType" json:"digest_type"`
+	Digest     string `xml:"digest" json:"digest"`
 	KeyData    struct {
-		Flags    int `xml:"flags"`
-		Protocol int `xml:"protocol"`
-		Alg      int `xml:"alg"`
-		PubKey   string `xml:"pubKey"`
-	} `xml:"keyData"`
+		Flags    int `xml:"flags" json:"flags"`
+		Protocol int `xml:"protocol" json:"protocol"`
+		Alg      int `xml:"alg" json:"alg"`
+		PubKey   string `xml:"pubKey" json:"public_key"`
+	} `xml:"keyData" json:"key_data"`
 }
 
 type DomainExtension struct {
