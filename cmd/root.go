@@ -13,7 +13,7 @@ var envPrefix = "FI_EPP"
 
 var rootCmd = &cobra.Command{
 	Use:   "cli",
-	Short: "Small app for FI EPP system management (domains, contacts)",
+	Short: "Command line client for FI EPP asset management (domains, contacts etc)",
 }
 
 func Execute() {

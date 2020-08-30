@@ -26,6 +26,7 @@ var pollShowMsgCmd = &cobra.Command{
 		if err = client.Connect(); err != nil {
 			return errors.Wrap(err, "Unable to connect")
 		}
+		defer client.Close()
 
 		msg, err := client.Poll()
 		if err != nil {
@@ -53,8 +54,6 @@ var pollShowMsgCmd = &cobra.Command{
 			_ = w.Flush()
 		}
 
-		_ = client.Close()
-
 		return nil
 	},
 }
@@ -78,6 +77,7 @@ var pollAckMsgCmd = &cobra.Command{
 		if err = client.Connect(); err != nil {
 			return errors.Wrap(err, "Unable to connect")
 		}
+		defer client.Close()
 
 		for _, msgId := range args {
 			remaining, err := client.PollAck(msgId)
@@ -88,8 +88,6 @@ var pollAckMsgCmd = &cobra.Command{
 
 			fmt.Printf("Successfully acknowledged message %s, %d messages remaining in queue.\n", msgId, remaining)
 		}
-
-		_ = client.Close()
 
 		return nil
 	},

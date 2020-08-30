@@ -24,7 +24,7 @@ func TestClient_CheckContacts(t *testing.T) {
 	}
 
 	for _, check := range checks {
-		if check.Name.Name == "username2" {
+		if check.Id.Name == "username2" {
 			if check.IsAvailable {
 				t.Errorf("User %s should be unavailable.", check.Name.Name)
 			}
@@ -214,16 +214,16 @@ var contactCheckResponse = `<?xml version="1.0" encoding="UTF-8" standalone="no"
       <msg>Command completed successfully</msg>
     </result>
     <resData>
-      <contact:chkData xmlns:contact="urn:ietf:params:xml:ns:contact-1.0">
+      <contact:chkData>
         <contact:cd>
-          <contact:name avail="1">username1</contact:name>
+          <contact:id avail="1">username1</contact:id>
         </contact:cd>
         <contact:cd>
-          <contact:name avail="0">username2</contact:name>
+          <contact:id avail="0">username2</contact:id>
           <contact:reason>In use</contact:reason>
         </contact:cd>
         <contact:cd>
-          <contact:name avail="1">username3</contact:name>
+          <contact:id avail="1">username3</contact:id>
         </contact:cd>
       </contact:chkData>
     </resData>

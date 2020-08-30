@@ -18,15 +18,20 @@ var balanceCmd = &cobra.Command{
 		if err = client.Connect(); err != nil {
 			return errors.Wrap(err, "Unable to connect")
 		}
+		defer client.Close()
 
 		balance, err := client.Balance()
 		if err != nil {
 			return errors.Wrap(err, "Unable to fetch account balance")
 		}
 
-		fmt.Printf("Account currently has %d euros available.\n", balance)
+		plain, _ := cmd.Flags().GetBool("plain")
 
-		_ = client.Close()
+		if plain {
+			fmt.Println(balance)
+		} else {
+			fmt.Printf("Account currently has %d euros available.\n", balance)
+		}
 
 		return nil
 	},
@@ -34,4 +39,5 @@ var balanceCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(balanceCmd)
+	balanceCmd.Flags().BoolP("plain", "p", false, "Return only the balance sum.")
 }

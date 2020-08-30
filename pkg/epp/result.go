@@ -61,6 +61,10 @@ type ItemCheck struct {
 		Name  string `xml:",chardata"`
 		Avail int    `xml:"avail,attr"`
 	} `xml:"name"`
+	Id struct {
+		Name  string `xml:",chardata"`
+		Avail int    `xml:"avail,attr"`
+	} `xml:"id"`
 	Reason      string `xml:"reason"`
 	IsAvailable bool
 }

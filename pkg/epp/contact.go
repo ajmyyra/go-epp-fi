@@ -89,45 +89,45 @@ type APIContactDeletion struct {
 }
 
 type ContactResponse struct {
-	Id         string                    `xml:"id"`
-	Role       int                       `xml:"role"`
-	Type       int                       `xml:"type"`
-	PostalInfo ContactResponsePostalInfo `xml:"postalInfo"`
-	Phone      string                    `xml:"voice"`
-	Email      string                    `xml:"email"`
-	LegalEmail string                    `xml:"legalemail"`
-	ClID       string                    `xml:"clID"`
-	CrID       string                    `xml:"crID"`
-	CrDate     string                    `xml:"crDate"`
-	UpDate     string                    `xml:"upDate"`
+	Id         string                    `xml:"id" json:"id"`
+	Role       int                       `xml:"role" json:"role"`
+	Type       int                       `xml:"type" json:"type"`
+	PostalInfo ContactResponsePostalInfo `xml:"postalInfo" json:"postal_info"`
+	Phone      string                    `xml:"voice" json:"voice"`
+	Email      string                    `xml:"email" json:"email"`
+	LegalEmail string                    `xml:"legalemail" json:"legal_email"`
+	ClID       string                    `xml:"clID" json:"-"`
+	CrID       string                    `xml:"crID" json:"creator"`
+	CrDate     string                    `xml:"crDate" json:"creation_date"`
+	UpDate     string                    `xml:"upDate" json:"update_date"`
 	Disclose   struct {
-		DisclosedData ResponseInfoDisclosure `xml:"infDataDisclose"`
-	} `xml:"disclose"`
+		DisclosedData ResponseInfoDisclosure `xml:"infDataDisclose" json:"information_disclosure"`
+	} `xml:"disclose" json:"disclosure"`
 }
 
 type ContactResponsePostalInfo struct {
-	Type           string `xml:"type,attr"`
-	IsFinnish      int `xml:"isFinnish"`
-	FirstName      string `xml:"firstname"`
-	LastName       string `xml:"lastname"`
-	Name           string `xml:"name"`
-	Org            string `xml:"org"`
-	BirthDate      string `xml:"birthDate"`
-	Identity       string `xml:"identity"`
-	RegisterNumber string `xml:"registernumber"`
+	Type           string `xml:"type,attr" json:"-"`
+	IsFinnish      int `xml:"isFinnish" json:"is_finnish"`
+	FirstName      string `xml:"firstname" json:"first_name"`
+	LastName       string `xml:"lastname" json:"last_name"`
+	Name           string `xml:"name" json:"name"`
+	Org            string `xml:"org" json:"org"`
+	BirthDate      string `xml:"birthDate" json:"birth_date"`
+	Identity       string `xml:"identity" json:"identity"`
+	RegisterNumber string `xml:"registernumber" json:"register_number"`
 	Addr           struct {
-		Street     []string `xml:"street"`
-		City       string   `xml:"city"`
-		State      string   `xml:"sp"`
-		PostalCode string   `xml:"pc"`
-		Country    string   `xml:"cc"`
+		Street     []string `xml:"street" json:"street"`
+		City       string   `xml:"city" json:"city"`
+		State      string   `xml:"sp" json:"state"`
+		PostalCode string   `xml:"pc" json:"postal_code"`
+		Country    string   `xml:"cc" json:"country"`
 	} `xml:"addr"`
 }
 
 type ResponseInfoDisclosure struct {
-	Flag    string `xml:"flag,attr"`
-	Email   string `xml:"email"`
-	Address string `xml:"address"`
+	Flag    string `xml:"flag,attr" json:"flag"`
+	Email   string `xml:"email" json:"email"`
+	Address string `xml:"address" json:"address"`
 }
 
 type ContactInfo struct {
@@ -341,6 +341,19 @@ func (s *ContactInfo) Validate() error {
 
 	if len(s.PostalInfo.Addr.Country) != 2 {
 		return errors.New("Country code must be ISO 3166-1 alpha-2 -formatted (2 characters long).")
+	}
+
+	correctPhoneNumber := true
+	if len(s.Phone) < 5 {
+		correctPhoneNumber = false
+	} else {
+		if string(s.Phone[0]) != "+" {
+			correctPhoneNumber = false
+		}
+	}
+
+	if !correctPhoneNumber {
+		return errors.New("Phone number must be defined with country code, e.g. +358401234567")
 	}
 
 	return nil
