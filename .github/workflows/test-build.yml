@@ -10,7 +10,7 @@ jobs:
 
   build:
     name: Test & build
-    runs-on: buster-slim
+    runs-on: ubuntu-latest
     steps:
     
     - name: Install dependencies
