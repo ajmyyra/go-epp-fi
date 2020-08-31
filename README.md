@@ -1,11 +1,14 @@
 # go-epp-fi
-Golang library and client for interacting with Finnish communication authority's (slightly non-standard) EPP API for FI domains.
+![Test results](https://github.com/ajmyyra/go-epp-fi/workflows/Tests/badge.svg)
 
-## Work In Progress
+Golang client library, Go API bindings and command line client for interacting with Finnish communication authority's (slightly non-standard) EPP API for FI domains.
 
-This repository is a work in progress, with things expected to be changed, moved, added and removed before version 1.0 is released.
+## Version 1.0
 
-Currently done:
+Version 1.0 has API bindings and client library support for all FI EPP API functions.
+Command line client included in 1.0 has support for balance, service messages, and contact & domain management.
+
+Client library and API bindings support:
 - FI EPP extensions (login, logout, balance checking, polling & acking messages)
 - Contacts (check, create, read, update, delete)
 - Domains (check, create, read, update, delete, renew, transfer)
@@ -13,17 +16,23 @@ Currently done:
 - Base for all API tests and tests for FI EPP extensions, contacts & domains
 - Some FI EPP specialities (transfer lock)
 - DNSSec support
-- Small command line client with support for FI EPP extensions
+- Command line client (epp-fi) for controlling contacts & domains, checking service messages and checking balance
 
-Next up:
-- CLI support for controlling contacts & domains
-- Perhaps CLI support for RAW XML debugging (i.e. "send this file to server, print what comes back")
-- Publishing 1.0
 
-## Structure
+## Version 1.1
+
+Some ideas for the next version. Need something else? Add an [issue](https://github.com/ajmyyra/go-epp-fi/issues) or [pull request](https://github.com/ajmyyra/go-epp-fi/pulls)!
+
+- CLI support for XML debugging (i.e. "send this XML file to server, print what comes back")
+- CLI DNSSec support
+- Better documentation with examples for GoDoc
+- Bubbling under: tests for CLI
+
+## Project structure
 
 Types for EPP objects can be found under pkg/epp.
 Client functionality (that utilizes EPP objects) is available under pkg/registry.
+Command line client (that utilizes the EPP objects and client) is under cmd.
 
 ## Tests
 
@@ -33,49 +42,3 @@ After this, all tests can be run with the command `make test`.
 
 OpenSSL is required for certificate creation, but tests themselves won't need it.
 
-## Raw example usage without any features
-
-```
-import (
-	"fmt"
-	"github.com/ajmyyra/go-epp-fi/pkg/registry"
-	"io/ioutil"
-)
-
-func main() {
-	clientKey, err := ioutil.ReadFile("/path/to/your/certs/privkey.pem")
-	if err != nil {
-		panic(err)
-	}
-	clientCert, err := ioutil.ReadFile("/path/to/your/certs/cert.pem")
-    if err != nil {
-		panic(err)
-	}
-
-	client, err := registry.NewRegistryClient("username","password","epptest.ficora.fi", 700, clientKey, clientCert)
-	if err != nil {
-		panic(err)
-	}
-
-	if err = client.Connect(); err != nil {
-		panic(err)
-	}
-	fmt.Printf("Connected successfully, server time is now %s\n", client.Greeting.SvDate)
-
-	greeting, err := client.Hello()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("%+v\n", greeting)
-
-    if err = client.Login(); err != nil {
-        panic(err)
-    }
-    fmt.Println("Logged in successfully.")
-
-    if err = client.Logout(); err != nil {
-        panic(err)
-    }
-    fmt.Println("Logged out successfully.")
-}
-```
