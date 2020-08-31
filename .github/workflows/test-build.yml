@@ -12,9 +12,6 @@ jobs:
     name: Test & build
     runs-on: ubuntu-latest
     steps:
-    
-    - name: Install dependencies
-      run: apt update && apt-get -y install openssl
 
     - name: Set up Go 1.14
       uses: actions/setup-go@v2
