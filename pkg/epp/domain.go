@@ -427,10 +427,10 @@ func NewDomainUpdateSetTransferKey(domain, newKey string) (DomainUpdate, error) 
 	return transferKeyData, nil
 }
 
-func NewDomainUpdateRemoveTransferKey(domain, currentKey string) DomainUpdate {
+func NewDomainUpdateRemoveTransferKey(domain string) DomainUpdate {
 	transferKeyData := createDomainUpdateBase(domain)
 	transferKeyData.Rem.AuthInfo = &DomainAuthInfo{
-		BrokerChangeKey: currentKey,
+		BrokerChangeKey: "thisKeyDoesN0tMatter+",
 	}
 
 	return transferKeyData

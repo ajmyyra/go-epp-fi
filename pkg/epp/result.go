@@ -41,9 +41,9 @@ type CreateData struct {
 }
 
 type RenewalData struct {
-	Name       string `xml:"name"`
-	RawExpDate string `xml:"exDate"`
-	ExpireDate time.Time
+	Name      string `xml:"name"`
+	RawExDate string `xml:"exDate"`
+	ExDate    time.Time
 }
 
 type TransferData struct {

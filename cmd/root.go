@@ -12,7 +12,7 @@ var configVars = []string{"CLIENT_KEY", "CLIENT_CERT", "USERNAME", "PASSWORD", "
 var envPrefix = "FI_EPP"
 
 var rootCmd = &cobra.Command{
-	Use:   "cli",
+	Use:   "epp-fi",
 	Short: "Command line client for FI EPP asset management (domains, contacts etc)",
 }
 

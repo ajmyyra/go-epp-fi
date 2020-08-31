@@ -256,7 +256,7 @@ func (s *Client) RenewDomain(domain, currentExpiration string, years int) (epp.R
 	}
 
 	renewalInfo := renewResp.Response.ResData.RenewalData
-	renewalInfo.ExpireDate, err = parseDate(renewalInfo.RawExpDate)
+	renewalInfo.ExDate, err = parseDate(renewalInfo.RawExDate)
 	if err != nil {
 		return epp.RenewalData{}, err
 	}

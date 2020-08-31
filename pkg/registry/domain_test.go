@@ -190,8 +190,8 @@ func TestClient_RenewDomain(t *testing.T) {
 		t.Errorf("Wrong domain name: %s", renewalInfo.Name)
 	}
 
-	if renewalInfo.ExpireDate.Before(time.Date(2024, 8, 1, 0, 0, 0, 0, time.UTC)) {
-		t.Errorf("Expiration date before expected: %s", renewalInfo.ExpireDate)
+	if renewalInfo.ExDate.Before(time.Date(2024, 8, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Errorf("Expiration date before expected: %s", renewalInfo.ExDate)
 	}
 
 	if err = eppTestClient.Close(); err != nil {
