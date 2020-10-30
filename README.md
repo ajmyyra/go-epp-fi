@@ -69,7 +69,7 @@ export FI_EPP_CLIENT_KEY="/home/user/path/to/your_client_key.pem"
 export FI_EPP_CLIENT_CERT="/home/user/path/to/your_client_certificate.pem"
 export FI_EPP_USERNAME="YOUR_USERNAME"
 export FI_EPP_PASSWORD="YOUR_PASSWORD"
-# export FI_EPP_SERVER="registry.domain.fi" # For production usage
+# export FI_EPP_SERVER="epp.domain.fi" # For production usage
 export FI_EPP_SERVER="epptest.ficora.fi" # For testing purposes
 # export FLUME='{"level":"DBG", "development":true, "addCaller":true}' # For debugging
 
