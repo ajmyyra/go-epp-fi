@@ -162,7 +162,10 @@ var registerDomainCmd = &cobra.Command{
 		registrant, _ := cmd.Flags().GetString("registrant")
 		ns, _ := cmd.Flags().GetStringArray("nameserver")
 
-		domainDetails := epp.NewDomainDetails(args[0], years, registrant, ns)
+		domainDetails, err := epp.NewDomainDetails(args[0], years, registrant, ns)
+		if err != nil {
+			return err
+		}
 		if err = domainDetails.Validate(); err != nil {
 			return err
 		}

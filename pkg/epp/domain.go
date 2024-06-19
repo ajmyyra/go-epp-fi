@@ -3,6 +3,8 @@ package epp
 import (
 	"encoding/xml"
 	"errors"
+	"fmt"
+	"net"
 	"regexp"
 	"strings"
 	"time"
@@ -13,7 +15,6 @@ const transferKeyUpperCaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const transferKeyNumbers = "0123456789"
 const transferKeySpecialLetters = "!\"#$%'()*+,-./:;=@[\\]^_'{|}~)"
 
-
 type APIDomainCheck struct {
 	XMLName xml.Name `xml:"epp"`
 	Xmlns   string   `xml:"xmlns,attr"`
@@ -21,7 +22,7 @@ type APIDomainCheck struct {
 		Check struct {
 			DomainCheck struct {
 				Xmlns string   `xml:"xmlns:domain,attr"`
-				Name   []string `xml:"domain:name"`
+				Name  []string `xml:"domain:name"`
 			} `xml:"domain:check"`
 		} `xml:"check"`
 		ClTRID string `xml:"clTRID"`
@@ -36,9 +37,9 @@ type APIDomainInfo struct {
 		Info struct {
 			DomainInfo struct {
 				Xmlns string `xml:"xmlns:domain,attr"`
-				Name   struct {
-					DomainName  string `xml:",chardata"`
-					Hosts       string `xml:"hosts,attr"`
+				Name  struct {
+					DomainName string `xml:",chardata"`
+					Hosts      string `xml:"hosts,attr"`
 				} `xml:"domain:name"`
 			} `xml:"domain:info"`
 		} `xml:"info"`
@@ -50,7 +51,7 @@ type APIDomainInfoResponse struct {
 	XMLName  xml.Name `xml:"epp"`
 	Xmlns    string   `xml:"xmlns,attr"`
 	Response struct {
-		Result Result `xml:"result"`
+		Result  Result `xml:"result"`
 		ResData struct {
 			DomainInfo DomainInfoResp `xml:"infData"`
 		} `xml:"resData"`
@@ -78,7 +79,7 @@ type APIDomainUpdate struct {
 			DomainUpdate DomainUpdate `xml:"domain:update"`
 		} `xml:"update"`
 		Extension *DomainExtension `xml:"extension,omitempty"`
-		ClTRID string `xml:"clTRID"`
+		ClTRID    string           `xml:"clTRID"`
 	} `xml:"command"`
 }
 
@@ -92,8 +93,8 @@ type APIDomainRenewal struct {
 				Name       string `xml:"domain:name"`
 				CurExpDate string `xml:"domain:curExpDate"`
 				Period     struct {
-					Years  int `xml:",chardata"`
-					Unit   string `xml:"unit,attr"`
+					Years int    `xml:",chardata"`
+					Unit  string `xml:"unit,attr"`
 				} `xml:"domain:period"`
 			} `xml:"domain:renew"`
 		} `xml:"renew"`
@@ -127,8 +128,8 @@ type APIDomainDeletion struct {
 	Command struct {
 		Delete struct {
 			DomainDelete struct {
-				Xmlns      string `xml:"xmlns:domain,attr"`
-				Name       string `xml:"domain:name"`
+				Xmlns string `xml:"xmlns:domain,attr"`
+				Name  string `xml:"domain:name"`
 			} `xml:"domain:delete"`
 		} `xml:"delete"`
 		ClTRID string `xml:"clTRID"`
@@ -136,47 +137,51 @@ type APIDomainDeletion struct {
 }
 
 type DomainInfoResp struct {
-	Xmlns         string `xml:"domain,attr" json:"-"`
-	Name          string `xml:"name" json:"name"`
-	RegistryLock  int `xml:"registrylock" json:"registry_lock"`
-	AutoRenew     int `xml:"autorenew" json:"autorenew"`
-	RawRenewDate  string `xml:"autorenewDate" json:"-"`
+	Xmlns         string    `xml:"domain,attr" json:"-"`
+	Name          string    `xml:"name" json:"name"`
+	RegistryLock  int       `xml:"registrylock" json:"registry_lock"`
+	AutoRenew     int       `xml:"autorenew" json:"autorenew"`
+	RawRenewDate  string    `xml:"autorenewDate" json:"-"`
 	AutoRenewDate time.Time `json:"autorenew_date"`
 	DomainStatus  struct {
-		Status    string `xml:"s,attr" json:"status"`
+		Status string `xml:"s,attr" json:"status"`
 	} `xml:"status" json:"domain_status"`
-	Registrant string `xml:"registrant" json:"registrant"`
+	Registrant string          `xml:"registrant" json:"registrant"`
 	Contact    []DomainContact `xml:"contact" json:"contact,omitempty"`
-	Ns struct {
+	Ns         struct {
 		HostObj []string `xml:"hostObj" json:"nameserver"`
 	} `xml:"ns" json:"ns"`
-	ClID      string `xml:"clID" json:"-"`
-	CrID      string `xml:"crID" json:"creator"`
-	RawCrDate string `xml:"crDate" json:"-"`
-	CrDate    time.Time `json:"created"`
-	RawUpDate string `xml:"upDate" json:"-"`
-	UpDate    time.Time `json:"updated"`
-	RawExDate string `xml:"exDate" json:"-"`
-	ExDate    time.Time `json:"expires"`
-	RawTrDate string `xml:"trDate" json:"-"`
-	TrDate    time.Time `json:"transferred"`
+	ClID      string             `xml:"clID" json:"-"`
+	CrID      string             `xml:"crID" json:"creator"`
+	RawCrDate string             `xml:"crDate" json:"-"`
+	CrDate    time.Time          `json:"created"`
+	RawUpDate string             `xml:"upDate" json:"-"`
+	UpDate    time.Time          `json:"updated"`
+	RawExDate string             `xml:"exDate" json:"-"`
+	ExDate    time.Time          `json:"expires"`
+	RawTrDate string             `xml:"trDate" json:"-"`
+	TrDate    time.Time          `json:"transferred"`
 	AuthInfo  DomainAuthInfoResp `xml:"authInfo" json:"auth_info,omitempty"`
 	DsData    []DomainDSDataResp `xml:"dsData" json:"dnssec,omitempty"`
 }
 
 type DomainDetails struct {
-	Xmlns string `xml:"xmlns:domain,attr"`
-	Name   string `xml:"domain:name"`
-	Period struct {
-		Amount int `xml:",chardata"`
-		Unit string `xml:"unit,attr"`
-	} `xml:"domain:period"`
-	Ns DomainNameservers `xml:"domain:ns"`
-	Registrant string `xml:"domain:registrant"`
-	Contact    []struct {
-		Text string `xml:",chardata"`
-		Type string `xml:"type,attr"`
-	} `xml:"domain:contact,omitempty"`
+	Xmlns      string                 `xml:"xmlns:domain,attr"`
+	Name       string                 `xml:"domain:name"`
+	Period     DomainDetailsPeriod    `xml:"domain:period"`
+	Ns         DomainNameservers      `xml:"domain:ns"`
+	Registrant string                 `xml:"domain:registrant"`
+	Contact    []DomainDetailsContact `xml:"domain:contact,omitempty"`
+}
+
+type DomainDetailsPeriod struct {
+	Amount int    `xml:",chardata"`
+	Unit   string `xml:"unit,attr"`
+}
+
+type DomainDetailsContact struct {
+	Text string `xml:",chardata"`
+	Type string `xml:"type,attr"`
 }
 
 func (s *DomainDetails) Validate() error {
@@ -209,31 +214,35 @@ type DomainUpdate struct {
 	Xmlns string `xml:"xmlns:domain,attr"`
 	Name  string `xml:"domain:name"`
 	Add   struct {
-		Status     *DomainStatus `xml:"domain:status,omitempty"`
-		Ns         *DomainNameservers `xml:"domain:ns,omitempty"`
+		Status *DomainStatus      `xml:"domain:status,omitempty"`
+		Ns     *DomainNameservers `xml:"domain:ns,omitempty"`
 	} `xml:"domain:add"`
 	Rem struct {
-		Status     *DomainStatus       `xml:"domain:status,omitempty"`
-		Ns         *DomainNameservers  `xml:"domain:ns,omitempty"`
-		AuthInfo   *DomainAuthInfo `xml:"domain:authInfo,omitempty"`
+		Status   *DomainStatus      `xml:"domain:status,omitempty"`
+		Ns       *DomainNameservers `xml:"domain:ns,omitempty"`
+		AuthInfo *DomainAuthInfo    `xml:"domain:authInfo,omitempty"`
 	} `xml:"domain:rem"`
 	Chg struct {
-		Registrant string                `xml:"domain:registrant,omitempty"`
-		Contact    []DomainContact       `xml:"domain:contact,omitempty"`
-		AuthInfo   *DomainAuthInfo   `xml:"domain:authInfo,omitempty"`
+		Registrant   string              `xml:"domain:registrant,omitempty"`
+		Contact      []DomainContact     `xml:"domain:contact,omitempty"`
+		AuthInfo     *DomainAuthInfo     `xml:"domain:authInfo,omitempty"`
 		RegistryLock *DomainRegistryLock `xml:"domain:registrylock,omitempty"`
 	} `xml:"domain:chg"`
 }
 
 type DomainNameservers struct {
-	HostObj  []string `xml:"domain:hostObj,omitempty"`
-	HostAttr []struct {
-		HostName string `xml:"domain:hostName,omitempty"`
-		HostAddr []struct {
-			Text string `xml:",chardata"`
-			Ip   string `xml:"ip,attr,omitempty"`
-		} `xml:"domain:hostAddr,omitempty"`
-	} `xml:"domain:hostAttr,omitempty"`
+	HostObj  []string          `xml:"domain:hostObj,omitempty"`
+	HostAttr []NSHostAttribute `xml:"domain:hostAttr,omitempty"`
+}
+
+type NSHostAttribute struct {
+	HostName string                   `xml:"domain:hostName,omitempty"`
+	HostAddr []NSHostAttributeAddress `xml:"domain:hostAddr,omitempty"`
+}
+
+type NSHostAttributeAddress struct {
+	Text string `xml:",chardata"`
+	Ip   string `xml:"ip,attr,omitempty"`
 }
 
 type DomainStatus struct {
@@ -258,14 +267,14 @@ type DomainAuthInfo struct {
 }
 
 type DomainDSDataResp struct {
-	KeyTag     int `xml:"keyTag" json:"key_tag"`
-	Alg        int `xml:"alg" json:"alg"`
-	DigestType int `xml:"digestType" json:"digest_type"`
+	KeyTag     int    `xml:"keyTag" json:"key_tag"`
+	Alg        int    `xml:"alg" json:"alg"`
+	DigestType int    `xml:"digestType" json:"digest_type"`
 	Digest     string `xml:"digest" json:"digest"`
 	KeyData    struct {
-		Flags    int `xml:"flags" json:"flags"`
-		Protocol int `xml:"protocol" json:"protocol"`
-		Alg      int `xml:"alg" json:"alg"`
+		Flags    int    `xml:"flags" json:"flags"`
+		Protocol int    `xml:"protocol" json:"protocol"`
+		Alg      int    `xml:"alg" json:"alg"`
 		PubKey   string `xml:"pubKey" json:"public_key"`
 	} `xml:"keyData" json:"key_data"`
 }
@@ -276,9 +285,9 @@ type DomainExtension struct {
 
 type DomainSecDNSUpdate struct {
 	Xmlns string `xml:"xmlns:secDNS,attr"`
-	Rem struct {
-		DsData []DomainDSData `xml:"secDNS:dsData"`
-		RemoveAll bool `xml:"secDNS:all,omitempty"`
+	Rem   struct {
+		DsData    []DomainDSData `xml:"secDNS:dsData"`
+		RemoveAll bool           `xml:"secDNS:all,omitempty"`
 	} `xml:"secDNS:rem"`
 	Add struct {
 		DsData []DomainDSData `xml:"secDNS:dsData"`
@@ -288,17 +297,17 @@ type DomainSecDNSUpdate struct {
 }
 
 type DomainDSData struct {
-	KeyTag     int `xml:"secDNS:keyTag"`
-	Alg        int `xml:"secDNS:alg"`
-	DigestType int `xml:"secDNS:digestType"`
-	Digest     string `xml:"secDNS:digest"`
+	KeyTag     int             `xml:"secDNS:keyTag"`
+	Alg        int             `xml:"secDNS:alg"`
+	DigestType int             `xml:"secDNS:digestType"`
+	Digest     string          `xml:"secDNS:digest"`
 	KeyData    DomainDSKeyData `xml:"secDNS:keyData"`
 }
 
 type DomainDSKeyData struct {
-	Flags    int `xml:"secDNS:flags"`
-	Protocol int `xml:"secDNS:protocol"`
-	Alg      int `xml:"secDNS:alg"`
+	Flags    int    `xml:"secDNS:flags"`
+	Protocol int    `xml:"secDNS:protocol"`
+	Alg      int    `xml:"secDNS:alg"`
 	PubKey   string `xml:"secDNS:pubKey"`
 }
 
@@ -309,7 +318,7 @@ type DomainRegistryLock struct {
 	AuthKey      string   `xml:"domain:authkey,omitempty"`
 }
 
-func NewDomainDetails(domain string, years int, registrant string, dnsServers []string) DomainDetails {
+func NewDomainDetails(domain string, years int, registrant string, dnsServers []string) (DomainDetails, error) {
 	details := DomainDetails{}
 
 	details.Xmlns = DomainNamespace
@@ -317,9 +326,27 @@ func NewDomainDetails(domain string, years int, registrant string, dnsServers []
 	details.Period.Unit = "y"
 	details.Period.Amount = years
 	details.Registrant = registrant
-	details.Ns.HostObj = dnsServers
+	var nameServers []string
+	var hostAttributes []NSHostAttribute
+	for _, ns := range dnsServers {
+		if strings.Contains(ns, ",") {
+			nameServers = append(nameServers, strings.Split(ns, ",")[0])
+			hostAttr, err := createNSHostAttribute(ns)
+			if err != nil {
+				return DomainDetails{}, err
+			}
+			hostAttributes = append(hostAttributes, hostAttr)
+		} else {
+			nameServers = append(nameServers, ns)
+		}
+	}
 
-	return details
+	details.Ns.HostObj = nameServers
+	if len(hostAttributes) > 0 {
+		details.Ns.HostAttr = hostAttributes
+	}
+
+	return details, nil
 }
 
 func NewDomainUpdateContacts(domain, newAdminContact, newTechContact string) DomainUpdate {
@@ -350,12 +377,12 @@ func NewDomainUpdateNameservers(domain string, removedNameservers, newNameserver
 	nsData := createDomainUpdateBase(domain)
 	if removedNameservers != nil {
 		nsData.Rem.Ns = &DomainNameservers{
-			HostObj:  removedNameservers,
+			HostObj: removedNameservers,
 		}
 	}
 	if newNameservers != nil {
 		nsData.Add.Ns = &DomainNameservers{
-			HostObj:  newNameservers,
+			HostObj: newNameservers,
 		}
 	}
 
@@ -418,7 +445,6 @@ func NewDomainUpdateSetTransferKey(domain, newKey string) (DomainUpdate, error) 
 		return DomainUpdate{}, errors.New("transfer key does not contain a number")
 	}
 
-
 	transferKeyData := createDomainUpdateBase(domain)
 	transferKeyData.Chg.AuthInfo = &DomainAuthInfo{
 		BrokerChangeKey: newKey,
@@ -472,7 +498,7 @@ func NewDomainDNSSecRecord(keyTag, alg, digestType int, digest string, flags, pr
 	}, nil
 }
 
-func NewDomainUpdateActivateRegistryLock(domain string, numberToSend int, phoneNumbers ...string) (DomainUpdate, error)  {
+func NewDomainUpdateActivateRegistryLock(domain string, numberToSend int, phoneNumbers ...string) (DomainUpdate, error) {
 	if len(phoneNumbers) < 2 || len(phoneNumbers) > 3 {
 		return DomainUpdate{}, errors.New("registry lock requires 2-3 sms numbers for activation")
 	}
@@ -517,4 +543,43 @@ func createDomainUpdateBase(domain string) DomainUpdate {
 	updateData.Name = domain
 
 	return updateData
+}
+
+func createNSHostAttribute(ns string) (NSHostAttribute, error) {
+	addrParts := strings.Split(ns, ",")
+	hostAttr := NSHostAttribute{
+		HostName: addrParts[0],
+	}
+	if len(addrParts) < 2 || len(addrParts[1]) == 0 {
+		return hostAttr, nil
+	}
+
+	var hostAddrs []NSHostAttributeAddress
+
+	for _, addr := range addrParts[1:] {
+		ip := net.ParseIP(addr)
+		if ip == nil {
+			return NSHostAttribute{}, errors.New(fmt.Sprintf("invalid IP address: %s", addr))
+		}
+
+		ipFamily := ""
+		if ip.To4() != nil {
+			ipFamily = "v4"
+		} else if ip.To16() != nil {
+			ipFamily = "v6"
+		} else {
+			return NSHostAttribute{}, errors.New(fmt.Sprintf("invalid IP address: %s", addr))
+		}
+
+		hostAddrs = append(
+			hostAddrs, NSHostAttributeAddress{
+				Text: addr,
+				Ip:   ipFamily,
+			},
+		)
+	}
+
+	hostAttr.HostAddr = hostAddrs
+
+	return hostAttr, nil
 }
