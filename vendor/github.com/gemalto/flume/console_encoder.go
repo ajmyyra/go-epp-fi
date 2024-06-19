@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+//nolint:gochecknoinits
 func init() {
 	_ = zap.RegisterEncoder("term", func(cfg zapcore.EncoderConfig) (zapcore.Encoder, error) {
 		return NewConsoleEncoder((*EncoderConfig)(&cfg)), nil
@@ -86,8 +87,7 @@ func NewConsoleEncoder(cfg *EncoderConfig) Encoder {
 //
 // `github.com/mgutz/ansi` is a convenient package for getting color codes, e.g.:
 //
-//     ansi.ColorCode("red")
-//
+//	ansi.ColorCode("red")
 func NewColorizedConsoleEncoder(cfg *EncoderConfig, colorizer Colorizer) Encoder {
 	e := NewConsoleEncoder(cfg).(*consoleEncoder)
 	e.colorizer = colorizer
@@ -146,7 +146,7 @@ func (c *consoleEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) 
 	// Add the message itself.
 	if c.MessageKey != "" {
 		c.colorReset(final.buf)
-		//c.colorBright(&final)
+		// c.colorBright(&final)
 		final.safeAddString(ent.Message, false)
 		// ensure a minimum of 2 spaces between the message and the fields,
 		// to improve readability

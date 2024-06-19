@@ -44,7 +44,7 @@ run:
   # If invoked with -mod=vendor, the go command assumes that the vendor
   # directory holds the correct copies of dependencies and ignores
   # the dependency descriptions in go.mod.
-  modules-download-mode: vendor
+  # modules-download-mode:
 
 
 # output configuration options
@@ -90,9 +90,6 @@ linters-settings:
 #          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
 #          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
 #          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
-  golint:
-    # minimal confidence for issues, default is 0.8
-#    min-confidence: 0.8
   gofmt:
     # simplify code: gofmt with `-s` option, true by default
 #    simplify: true
@@ -119,11 +116,19 @@ linters-settings:
     include-go-root: false
     packages:
       - github.com/magiconair/properties/assert
-      - gopkg.in/go-playground/assert.v1
-      - github.com/pborman/uuid #replace with github.com/google/uuid
     inTests:
       - github.com/davecgh/go-spew/spew
       - github.com/stretchr/testify
+  gomodguard:
+    blocked:
+      modules:
+        - gopkg.in/go-playground/assert.v1:
+            recommendations:
+              - github.com/stretchr/testify
+            reason: "testify is the test assertion framework we use"
+        - github.com/pborman/uuid:
+            recommendations:
+              - github.com/google/uuid
   misspell:
     # Correct spellings using locale preferences for US or UK.
     # Default is to use a neutral variety of English.
@@ -185,41 +190,60 @@ linters-settings:
 #        sizeThreshold: 32
 
 linters:
+  # to try out individual linters: golangci-lint run -E gocyclo,gosimple
   enable:
-    - govet
-    - errcheck
     - staticcheck
-    - unused
+    - errcheck
     - gosimple
-    - structcheck
-    - varcheck
+    - govet
     - ineffassign
-    - deadcode
-    - typecheck
-    - bodyclose
-    - golint
-    - stylecheck
-    - gosec
-    - interfacer
-    - unconvert
+##    - typecheck          # redundant?  compiler does this
+    - unused
+##    - bodyclose          # its all false positives with requester and sling, which both close the body already
+    - depguard
+##    - dogsled            # checks for too many blank identifiers.  don't care
     - dupl
+    - errorlint
+#    - exhaustive
+#    - exhaustivestruct
+    - exportloopref
+##    - funlen              # checks function length.  don't care
+#    - gci
+##    - gochecknoglobals    # too common
+    - gochecknoinits
+    - gocognit
     - goconst
-    - gofmt
+    - gocritic
+##    - gocyclo             # checks cyclomatic complexity.  don't care
+#    - godot
+##    - godox               # checks for TODO comments.  not standardized
+    - goerr113
+##    - gofmt               # checks code is formatted, handled by make prep
+#    - gofumpt
+#    - goheader
+##    - goimports           # checks import order.  We're not using goimports
+    - revive
+#    - gomnd
+    - gomodguard
+    - goprintffuncname
+    - gosec
+##    - lll                 # checks line length.  not enforced
+##    - maligned            # optimizies struct field order, but structs are usually ordered for legibility
     - misspell
     - nakedret
-    - scopelint
-    - gocritic
-#  enable-all: true
-#  disable:
-#    - gochecknoinits     # we're intentionally using init() functions
-#    - goimports          # we're not using goimports to format imports, so this fails a lot
-#    - gocyclo            # not required for check in.  If interested, run manually: golangci-lint run -E gocyclo
-#    - maligned           # many structs are ordered for readability.  If interested, run manually: golangci-lint run -E maligned
-#    - depguard           # very slow, probably a bug (should be fast).
-#    - lll                # line length is not enforced
-#    - unparam            # too many false positives
-#    - prealloc           # probably promotes premature optimization.
-#    - gochecknoglobals   # too common
+    - nestif
+#    - nlreturn             # don't really like how this looks in all cases.  wsl covers similar ground anyway.
+    - noctx
+    - nolintlint
+#    - prealloc            # slice optimizations, but promotes too much premature optimization
+    - rowserrcheck
+    - exportloopref
+    - stylecheck
+#    - testpackage
+    - tparallel
+    - unconvert
+##    - unparam            # too many false positives
+##    - whitespace         # not enforced
   disable-all: true
 #  presets:
 #    - bugs
@@ -232,8 +256,10 @@ issues:
   # But independently from this option we use default exclude patterns,
   # it can be disabled by `exclude-use-default: false`. To list all
   # excluded by default patterns execute `golangci-lint run --help`
-#  exclude:
-#    - abcdef
+  exclude:
+  - Error return value of .(.*\.Write). is not checked
+  # we use merry errors a lot, and goerr113 doesn't recognize it as a valid sentinel error
+  - use wrapped static errors instead
 
   # Excluding configuration per-path, per-linter, per-text and per-source
   exclude-rules:
@@ -247,11 +273,17 @@ issues:
         - scopelint
         - gochecknoinits
         - gochecknoglobals
+        - wsl
+        - goconst
     - path: cmd
       linters:
         # init() functions are pretty common in main packages
         - gochecknoinits
         - gochecknoglobals
+    # exclude requiring comments on all exported stuff
+    - linters:
+        - revive
+      text: "exported:"
 
     # Exclude known linters from partially hard-vendored code,
     # which is impossible to exclude via "nolint" comments.
