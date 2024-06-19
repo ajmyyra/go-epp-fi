@@ -1,7 +1,11 @@
 package registry
 
 import (
+	"errors"
 	"github.com/ajmyyra/go-epp-fi/pkg/epp"
+
+	"github.com/stretchr/testify/assert"
+
 	"testing"
 	"time"
 )
@@ -82,6 +86,113 @@ func TestClient_GetDomain(t *testing.T) {
 	}
 }
 
+func TestNewDomainDetails(t *testing.T) {
+	tests := []struct {
+		name        string
+		nameservers []string
+		expected    epp.DomainDetails
+		err         error
+	}{
+		{
+			"normal domain without extras",
+			[]string{"ns1.testhosting.example", "ns2.testhosting.example"},
+			epp.DomainDetails{
+				Xmlns: epp.DomainNamespace,
+				Name:  "testdomain.fi",
+				Period: epp.DomainDetailsPeriod{
+					Amount: 2,
+					Unit:   "y",
+				},
+				Ns:         epp.DomainNameservers{HostObj: []string{"ns1.testhosting.example", "ns2.testhosting.example"}},
+				Registrant: "TST1234",
+				Contact:    nil,
+			},
+			nil,
+		},
+		{
+			"domain with dns glue records with IP addresses",
+			[]string{"ns1.testhosting.example,1.2.3.4,1080:0:0:0:8:800:200C:417A", "ns2.testhosting.example"},
+			epp.DomainDetails{
+				Xmlns: epp.DomainNamespace,
+				Name:  "testdomain.fi",
+				Period: epp.DomainDetailsPeriod{
+					Amount: 2,
+					Unit:   "y",
+				},
+				Ns: epp.DomainNameservers{
+					HostObj: []string{"ns1.testhosting.example", "ns2.testhosting.example"},
+					HostAttr: []epp.NSHostAttribute{
+						{
+							HostName: "ns1.testhosting.example",
+							HostAddr: []epp.NSHostAttributeAddress{
+								{
+									"1.2.3.4",
+									"v4",
+								},
+								{
+									"1080:0:0:0:8:800:200C:417A",
+									"v6",
+								},
+							},
+						},
+					},
+				},
+				Registrant: "TST1234",
+				Contact:    nil,
+			},
+			nil,
+		},
+		{
+			"domain with glue record but no IPs",
+			[]string{"ns1.testhosting.example,", "ns2.testhosting.example,"},
+			epp.DomainDetails{
+				Xmlns: epp.DomainNamespace,
+				Name:  "testdomain.fi",
+				Period: epp.DomainDetailsPeriod{
+					Amount: 2,
+					Unit:   "y",
+				},
+				Ns: epp.DomainNameservers{
+					HostObj: []string{"ns1.testhosting.example", "ns2.testhosting.example"},
+					HostAttr: []epp.NSHostAttribute{
+						{
+							HostName: "ns1.testhosting.example",
+							HostAddr: nil,
+						},
+						{
+							HostName: "ns2.testhosting.example",
+							HostAddr: nil,
+						},
+					},
+				},
+				Registrant: "TST1234",
+				Contact:    nil,
+			},
+			nil,
+		},
+		{
+			"domain with erroneous IPv4 address for glue record",
+			[]string{"ns1.testhosting.example", "ns2.testhosting.example,1.2.3.4.5"},
+			epp.DomainDetails{},
+			errors.New("invalid IP address: 1.2.3.4.5"),
+		},
+		{
+			"domain with erroneous IPv6 address for glue record",
+			[]string{"ns1.testhosting.example", "ns2.testhosting.example,1.2.3.4,56FE::2159:5BBC::6594"},
+			epp.DomainDetails{},
+			errors.New("invalid IP address: 56FE::2159:5BBC::6594"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			details, err := epp.NewDomainDetails("testdomain.fi", 2, "TST1234", tt.nameservers)
+			assert.Equal(t, tt.err, err)
+			assert.Equal(t, tt.expected, details)
+		})
+	}
+}
+
 func TestClient_CreateDomain(t *testing.T) {
 	eppTestServer, eppTestClient, err := initTestServerClient(12005)
 	if err != nil {
@@ -95,7 +206,10 @@ func TestClient_CreateDomain(t *testing.T) {
 		t.Fatalf("Connecting failed: %v\n", err)
 	}
 
-	domainDetails := epp.NewDomainDetails("testdomain3.co.uk", 2, "TST1234", []string{"ns1.testhosting.fi", "ns2.testhosting.fi"})
+	domainDetails, err := epp.NewDomainDetails("testdomain3.co.uk", 2, "TST1234", []string{"ns1.testhosting.fi", "ns2.testhosting.fi"})
+	if err != nil {
+		t.Errorf("Creating domain details failed: %s", err)
+	}
 
 	if err = domainDetails.Validate(); err == nil {
 		t.Errorf("Domainobject validation should have returned an error.")
@@ -239,7 +353,8 @@ func TestClient_UpdateDomainExtensions(t *testing.T) {
 		t.Fatalf("Connecting failed: %v\n", err)
 	}
 
-	newDnsSecRecord, err := epp.NewDomainDNSSecRecord(123456, 3, 1, "38EC35D5B3A34B44C39B", 257, 233, 1,">AQPJ////4Q==")
+	newDnsSecRecord, err := epp.NewDomainDNSSecRecord(123456, 3, 1, "38EC35D5B3A34B44C39B", 257, 233, 1, ">AQPJ////4Q==")
+	assert.NoError(t, err)
 
 	ext := epp.NewDomainDNSSecUpdateExtension([]epp.DomainDSData{newDnsSecRecord}, nil, true)
 

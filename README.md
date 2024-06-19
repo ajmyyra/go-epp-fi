@@ -19,6 +19,12 @@ Client library and API bindings contains:
 
 ## Version 1.1
 
+Version 1.1 is a dependency upgrade with one feature added for CLI.
+
+- CLI support for nameserver IP glue records for both IPv4 and IPv6 addresses when transferring, registering or updating domains.
+
+## Version 1.2
+
 Some ideas for the next version. Need something else? Add an [issue](https://github.com/ajmyyra/go-epp-fi/issues) or [pull request](https://github.com/ajmyyra/go-epp-fi/pulls)!
 
 - CLI support for XML debugging (i.e. "send this XML file to server, print what comes back")
@@ -33,7 +39,7 @@ Some ideas for the next version. Need something else? Add an [issue](https://git
 Command line client binary for Linux can be downloaded from Github.
 
 ```shell script
-$ wget https://github.com/ajmyyra/go-epp-fi/releases/download/1.0.0/epp-fi
+$ wget https://github.com/ajmyyra/go-epp-fi/releases/download/1.1.0/epp-fi
 $ sudo mv epp-fi /usr/local/bin/
 $ chmod +x /usr/local/bin/epp-fi
 $ epp-fi
